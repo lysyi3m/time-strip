@@ -152,4 +152,12 @@ final class RibbonFormatterTests: XCTestCase {
             "Home"
         )
     }
+
+    func testZoneTagEmptyOverrideFallsThrough() {
+        // Empty / whitespace-only override is treated as unset → computed tag, never blank.
+        let singapore = city("Asia/Singapore")
+        let instant = utc(2026, 7, 1, 12, 0, tzid: "UTC")
+        XCTAssertEqual(RibbonFormatter.zoneTag(for: singapore, at: instant, override: ""), "UTC+8")
+        XCTAssertEqual(RibbonFormatter.zoneTag(for: singapore, at: instant, override: "   "), "UTC+8")
+    }
 }

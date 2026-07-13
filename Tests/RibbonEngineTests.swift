@@ -127,6 +127,23 @@ final class RibbonEngineTests: XCTestCase {
         XCTAssertEqual(twos[1].instant.timeIntervalSince(twos[0].instant), 3600, accuracy: 0.0001)
     }
 
+    /// Regression: with `now` in the *second* occurrence of the repeated fall-back hour,
+    /// the grid must floor to that hour (not the first occurrence), so `now` sits inside
+    /// its own column. Warsaw 2026-10-25: local 02:00 repeats — first at 00:00 UTC (CEST),
+    /// second at 01:00 UTC (CET). now = 01:30 UTC is the second 02:30 local.
+    func testFallBackSecondOccurrenceAnchorsGrid() {
+        let now = instant(2026, 10, 25, 1, 30, tzid: "UTC")
+        let snapshot = RibbonEngine.snapshot(now: now, cities: [warsaw, singapore])
+
+        let nowInstant = snapshot.columnInstants[snapshot.nowColumnIndex]
+        XCTAssertLessThanOrEqual(nowInstant, now)
+        XCTAssertLessThan(now, nowInstant.addingTimeInterval(3600))
+        // Concretely: the now column floors to 01:00 UTC (the second local 02:00).
+        XCTAssertEqual(nowInstant, instant(2026, 10, 25, 1, 0, tzid: "UTC"))
+        assertUniformStride(snapshot.columnInstants)
+        assertRowsMatchLocalHours(snapshot)
+    }
+
     // MARK: - 4. Sub-hour offset
 
     func testSubHourOffsetDoesNotPerturbGrid() {

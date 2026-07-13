@@ -82,10 +82,14 @@ public enum RibbonEngine {
     // MARK: - Helpers
 
     /// Start of the hour containing `date` in `timeZone`, as an absolute instant.
+    ///
+    /// Uses the instant-based hour interval rather than reconstructing a date from
+    /// year/month/day/hour components: during a DST fall-back the same wall-clock hour
+    /// occurs twice, and `date(from:)` would resolve the ambiguous components to the
+    /// *first* occurrence — anchoring the grid an hour off when `now` is in the second.
     private static func floorToHour(_ date: Date, in timeZone: TimeZone) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let comps = calendar.dateComponents([.year, .month, .day, .hour], from: date)
-        return calendar.date(from: comps) ?? date
+        return calendar.dateInterval(of: .hour, for: date)?.start ?? date
     }
 }

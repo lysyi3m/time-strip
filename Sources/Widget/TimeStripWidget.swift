@@ -31,6 +31,7 @@ struct TimeStripWidgetEntryView: View {
             snapshot: RibbonFixtures.fourRows,
             is12h: RibbonFormatter.uses12HourClock(locale: .current)
         )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // center within the family bounds
     }
 }
 
@@ -44,6 +45,9 @@ struct TimeStripWidget: Widget {
         .configurationDisplayName("Time Strip")
         .description("Time zones as day/night ribbons.")
         .supportedFamilies([.systemExtraLarge])
+        // Use the full family bounds (default content margins would shrink the usable
+        // width below the ribbon's fixed layout and clip the last column).
+        .contentMarginsDisabled()
     }
 }
 

@@ -24,12 +24,15 @@ enum Palette {
         deep:  RGB(hex: 0x47589C)   // deep blue
     )
 
+    // Tuned so relative luminance is strictly monotonic deep < night < dawn/dusk < day
+    // (day is the lightest anchor), keeping the violet/amber hues — required for
+    // desaturation-safe shading (spec §6.6).
     private static let dark = Anchors(
-        day:   RGB(hex: 0x3B4450),
-        dawn:  RGB(hex: 0x4A4270),
-        dusk:  RGB(hex: 0x6E4A34),
+        day:   RGB(hex: 0x4C5461),  // lightest
+        dawn:  RGB(hex: 0x433A63),  // cool violet, below day
+        dusk:  RGB(hex: 0x5C4531),  // warm amber, below day
         night: RGB(hex: 0x202A45),
-        deep:  RGB(hex: 0x12172A)
+        deep:  RGB(hex: 0x12172A)   // darkest
     )
 
     /// Elevation control points (degrees, color), low → high. The mid "golden" anchor is

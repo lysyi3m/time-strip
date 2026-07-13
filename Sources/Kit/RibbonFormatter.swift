@@ -39,9 +39,14 @@ public enum RibbonFormatter {
     }
 
     /// Conventional abbreviation when one exists, else `UTC±N` (`:30`/`:45` supported).
-    /// A non-empty per-city manual override wins over both. Instant-based → DST-correct.
+    /// A per-city manual override wins over both — but an empty/whitespace-only override
+    /// is treated as *unset* (falls through to the computed tag), so clearing the override
+    /// field in the config never leaves the row with a blank zone tag.
+    /// Instant-based → DST-correct.
     public static func zoneTag(for city: City, at instant: Date, override: String?) -> String {
-        if let override, !override.isEmpty { return override }
+        if let override, !override.trimmingCharacters(in: .whitespaces).isEmpty {
+            return override
+        }
 
         let tz = city.timeZone
         let abbreviation = tz.abbreviation(for: instant) ?? ""
