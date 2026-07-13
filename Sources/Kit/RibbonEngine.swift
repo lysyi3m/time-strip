@@ -4,14 +4,16 @@ import Foundation
 /// absolute-time column grid, per-city rows, per-slot local time, and day-boundary flags.
 ///
 /// The grid steps by a fixed 3600 s (not "add one clock hour"), so every column is one
-/// absolute instant shared across all rows — the absolute-time-alignment invariant. Solar
-/// `period` is a `.day` placeholder here; the real classification lands in Phase 2.
+/// absolute instant shared across all rows — the absolute-time-alignment invariant. Each
+/// slot's `period` is filled by the injected `SolarClassifier` from the slot's absolute
+/// instant and the city's coordinate.
 public enum RibbonEngine {
     public static func snapshot(
         now: Date,
         cities: [City],
         window: WindowSpec = .init(),
-        referenceIndex: Int = 0
+        referenceIndex: Int = 0,
+        classifier: SolarClassifier = .init()
     ) -> RibbonSnapshot {
         let columnCount = window.columnCount
 
@@ -27,7 +29,10 @@ public enum RibbonEngine {
         }
 
         let rows = cities.map { city in
-            RowSnapshot(city: city, slots: slots(for: city, columnInstants: columnInstants))
+            RowSnapshot(
+                city: city,
+                slots: slots(for: city, columnInstants: columnInstants, classifier: classifier)
+            )
         }
 
         return RibbonSnapshot(
@@ -40,7 +45,11 @@ public enum RibbonEngine {
 
     // MARK: - Per-row slots
 
-    private static func slots(for city: City, columnInstants: [Date]) -> [Slot] {
+    private static func slots(
+        for city: City,
+        columnInstants: [Date],
+        classifier: SolarClassifier
+    ) -> [Slot] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = city.timeZone
 
@@ -65,7 +74,7 @@ public enum RibbonEngine {
                 hour: c.hour ?? 0,
                 minute: c.minute ?? 0,
                 isDayStart: isDayStart,
-                period: .day
+                period: classifier.period(at: columnInstants[i], coordinate: city.coordinate)
             )
         }
     }
