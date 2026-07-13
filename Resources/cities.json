@@ -1,0 +1,10 @@
+[
+  { "name": "Warsaw", "country": "Poland", "admin1": "Mazovia",
+    "tzid": "Europe/Warsaw", "lat": 52.2297, "lon": 21.0122, "pop": 1790658 },
+  { "name": "London", "country": "United Kingdom", "admin1": "England",
+    "tzid": "Europe/London", "lat": 51.5074, "lon": -0.1278, "pop": 8961989 },
+  { "name": "New York", "country": "United States", "admin1": "New York",
+    "tzid": "America/New_York", "lat": 40.7128, "lon": -74.0060, "pop": 8804190 },
+  { "name": "Singapore", "country": "Singapore", "admin1": null,
+    "tzid": "Asia/Singapore", "lat": 1.3521, "lon": 103.8198, "pop": 5453600 }
+]

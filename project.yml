@@ -1,0 +1,98 @@
+name: Time Strip
+
+options:
+  bundleIdPrefix: com.mlkshkvch.timestrip
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.10"
+    # No signing needed for CI-style builds; set DEVELOPMENT_TEAM when you archive.
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+
+targets:
+
+  # ── UI-free core: models + time / solar / formatting engines ───────────────
+  # NO SwiftUI / WidgetKit / AppKit imports in Sources/Kit. Bundles cities.json.
+  TimeStripKit:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/Kit
+      - path: Resources
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.kit
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+
+  # ── Minimal host app (onboarding window); embeds the widget extension ──────
+  Time Strip:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/App
+    dependencies:
+      - target: TimeStripKit
+      - target: TimeStripWidget
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_CFBundleDisplayName: Time Strip
+        INFOPLIST_KEY_LSUIElement: "NO"
+        INFOPLIST_KEY_NSHumanReadableCopyright: "City data © GeoNames (CC BY 4.0)"
+
+  # ── WidgetKit extension: views, timeline provider, configuration intent ────
+  TimeStripWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Sources/Widget
+    dependencies:
+      - target: TimeStripKit
+    info:
+      path: Config/Widget-Info.plist
+      properties:
+        CFBundleDisplayName: Time Strip
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.widget
+
+  # ── Unit tests for the core. Not app-hosted → runner isn't sandboxed, so it
+  #    can read fixtures directly. @testable import TimeStripKit. ─────────────
+  TimeStripTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests
+    dependencies:
+      - target: TimeStripKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+
+schemes:
+  Time Strip:
+    build:
+      targets:
+        TimeStripKit: all
+        TimeStripWidget: all
+        Time Strip: [run, profile, archive, analyze]  # app not built during `test` → no signing to run tests
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - TimeStripTests
