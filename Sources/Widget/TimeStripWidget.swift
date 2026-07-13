@@ -1,10 +1,14 @@
 import SwiftUI
 import WidgetKit
+import TimeStripKit
+import TimeStripUI
 
 struct PlaceholderEntry: TimelineEntry {
     let date: Date
 }
 
+// P4: still a static placeholder provider driven by a hardcoded fixture. The real
+// hourly timeline provider lands in P5.
 struct PlaceholderProvider: TimelineProvider {
     func placeholder(in context: Context) -> PlaceholderEntry {
         PlaceholderEntry(date: Date())
@@ -23,7 +27,10 @@ struct TimeStripWidgetEntryView: View {
     var entry: PlaceholderEntry
 
     var body: some View {
-        Text("Time Strip")
+        RibbonView(
+            snapshot: RibbonFixtures.fourRows,
+            is12h: RibbonFormatter.uses12HourClock(locale: .current)
+        )
     }
 }
 
@@ -39,3 +46,7 @@ struct TimeStripWidget: Widget {
         .supportedFamilies([.systemExtraLarge])
     }
 }
+
+// NOTE: macOS does not support previewing widgets in Xcode's canvas ("This platform does
+// not support previewing widgets"). Preview the ribbon itself via TimeStripUI's
+// RibbonPreviews instead (canvas works from the app/framework, not this extension).

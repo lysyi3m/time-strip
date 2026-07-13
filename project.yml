@@ -33,6 +33,22 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         DEFINES_MODULE: "YES"
 
+  # ── Shared SwiftUI views (ribbon, palette, fixtures) ───────────────────────
+  # Extracted from the widget so macOS can host canvas previews (widget-extension
+  # targets can't be previewed on macOS). Imports TimeStripKit; used by app + widget.
+  TimeStripUI:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/UI
+    dependencies:
+      - target: TimeStripKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.ui
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+
   # ── Minimal host app (onboarding window); embeds the widget extension ──────
   Time Strip:
     type: application
@@ -41,6 +57,7 @@ targets:
       - Sources/App
     dependencies:
       - target: TimeStripKit
+      - target: TimeStripUI
       - target: TimeStripWidget
         embed: true
     settings:
@@ -59,6 +76,7 @@ targets:
       - Sources/Widget
     dependencies:
       - target: TimeStripKit
+      - target: TimeStripUI
     info:
       path: Config/Widget-Info.plist
       properties:
@@ -88,6 +106,7 @@ schemes:
     build:
       targets:
         TimeStripKit: all
+        TimeStripUI: all
         TimeStripWidget: all
         Time Strip: [run, profile, archive, analyze]  # app not built during `test` → no signing to run tests
     run:
