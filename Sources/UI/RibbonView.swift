@@ -5,26 +5,25 @@ import TimeStripKit
 /// numbers sit at fixed per-index centers regardless of day boundaries (spec §6.2/§6.5).
 private enum Metrics {
     // Sized so the natural content fills the `.systemExtraLarge` tile minus Apple's standard
-    // 16pt widget content margin (spec §3 ≈ 726×354 → content ≈ 694×322): rail 94 + 8×75 =
-    // 694 wide; 5×58 + 4×8 = 322 tall. Fonts (below) follow suit at ≥11pt with a clear
-    // hierarchy per the HIG.
+    // 16pt widget content margin (spec §3 ≈ 726×354 → content ≈ 694×320): rail 94 + 8×75 =
+    // 694 wide; 5×56 + 4×10 = 320 tall. Fonts (below) follow suit at ≥11pt with a clear
+    // hierarchy per the HIG. Row spacing is generous (review: "more breathing room").
     static let railWidth: CGFloat = 94
     static let slotWidth: CGFloat = 75
-    static let rowHeight: CGFloat = 58
-    static let rowSpacing: CGFloat = 8
+    static let rowHeight: CGFloat = 56
+    static let rowSpacing: CGFloat = 10
     static let rowCornerRadius: CGFloat = 12
     static let nowFrameLineWidth: CGFloat = 2
-    /// Small gap carved at a day boundary; each day-run becomes its own rounded pill. The
-    /// gap is *inset* from the two adjacent slots — column centers never move (invariant §6.2).
-    static let boundaryGap: CGFloat = 6
-    /// The now-frame sits a *uniform* `boundaryGap/2` outside the day-pills on every side: its
-    /// right edge bisects the carved gap (`insetX = 0` → on the slot boundary, gap/2 beyond the
-    /// pill edge), and it overhangs the row stack by the same gap/2 vertically. With a corner
-    /// radius of `rowCornerRadius + gap/2`, the frame's rounded corners share a center with the
-    /// day-pill corners where they meet a boundary — concentric curves, constant gap.
+    /// No gap is carved at day boundaries (`boundaryGap = 0`) — the ribbon is one continuous
+    /// bar (only the row's outer ends are rounded), so adjacent days meet seamlessly and the
+    /// date slot marks the change. The now-frame is a rounded box hugging the current column,
+    /// overhanging every side by half its stroke. Because nothing is carved underneath, its
+    /// rounded corners sit cleanly over the solid ribbon — no square cell corner is exposed.
+    static let boundaryGap: CGFloat = 0
+    static let nowFrameOverhang: CGFloat = nowFrameLineWidth / 2
     static let nowFrameInsetX: CGFloat = 0
-    static let nowFrameInsetY: CGFloat = -boundaryGap / 2
-    static let nowFrameCornerRadius: CGFloat = rowCornerRadius + boundaryGap / 2
+    static let nowFrameInsetY: CGFloat = -nowFrameOverhang
+    static let nowFrameCornerRadius: CGFloat = rowCornerRadius + nowFrameOverhang
 }
 
 /// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6.
@@ -161,15 +160,23 @@ private struct RibbonRow: View {
         .frame(width: width, height: Metrics.rowHeight)
     }
 
-    /// A rounded rectangle per contiguous day-run; the union forms the row's shape with a
-    /// carved gap at each day boundary. Pinned to the full ribbon width and leading-aligned
-    /// so `.mask` (which centers by default) doesn't shift the pills off their columns.
+    /// One shape per contiguous day-run; the union forms the row's shape with a carved gap at
+    /// each day boundary. Only the row's outer ends are rounded — the *first* run rounds its
+    /// leading corners, the *last* run its trailing corners; every internal boundary corner is
+    /// square. Pinned to the full ribbon width and leading-aligned so `.mask` (which centers by
+    /// default) doesn't shift the pills off their columns.
     private var runMask: some View {
-        ZStack(alignment: .leading) {
+        let r = Metrics.rowCornerRadius
+        return ZStack(alignment: .leading) {
             ForEach(dayRuns, id: \.start) { run in
-                RoundedRectangle(cornerRadius: Metrics.rowCornerRadius)
-                    .frame(width: run.width, height: Metrics.rowHeight)
-                    .offset(x: run.originX, y: 0)
+                UnevenRoundedRectangle(
+                    topLeadingRadius: run.roundLeading ? r : 0,
+                    bottomLeadingRadius: run.roundLeading ? r : 0,
+                    bottomTrailingRadius: run.roundTrailing ? r : 0,
+                    topTrailingRadius: run.roundTrailing ? r : 0
+                )
+                .frame(width: run.width, height: Metrics.rowHeight)
+                .offset(x: run.originX, y: 0)
             }
         }
         .frame(width: width, height: Metrics.rowHeight, alignment: .leading)
@@ -178,40 +185,47 @@ private struct RibbonRow: View {
     /// Contiguous spans of columns belonging to the same local day. Boundaries fall *before*
     /// a column whose `isDayStart` is set (excluding index 0, the row's outer edge). Each run
     /// is inset by half the gap on any side that faces a boundary — the gap is carved from
-    /// the slots, so column centers (the numbers) never move (invariant §6.2).
-    private var dayRuns: [(start: Int, originX: CGFloat, width: CGFloat)] {
+    /// the slots, so column centers (the numbers) never move (invariant §6.2). `roundLeading`/
+    /// `roundTrailing` mark the row's outer ends (the only rounded corners).
+    private var dayRuns: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] {
         let boundaries = Set(slots.indices.filter { $0 > 0 && slots[$0].isDayStart })
         let half = Metrics.boundaryGap / 2
-        var runs: [(start: Int, originX: CGFloat, width: CGFloat)] = []
+        var runs: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] = []
         var start = 0
         for end in 1...slots.count where end == slots.count || boundaries.contains(end) {
             let leadingGap = start > 0 ? half : 0        // boundary on the left edge
             let trailingGap = end < slots.count ? half : 0 // boundary on the right edge
             let originX = CGFloat(start) * Metrics.slotWidth + leadingGap
             let width = CGFloat(end - start) * Metrics.slotWidth - leadingGap - trailingGap
-            runs.append((start: start, originX: originX, width: width))
+            runs.append((
+                start: start, originX: originX, width: width,
+                roundLeading: start == 0, roundTrailing: end == slots.count
+            ))
             start = end
         }
         return runs
     }
 
 
-    /// A gradient with a stop at each column center colored by that column's wall-clock band
-    /// (plus solid edges), so same-band runs read flat and adjacent bands blend across one
-    /// slot — a "live" ribbon with no solar math.
+    /// Local clock hour as a continuous value (sub-hour zones carry their :30/:45), so the
+    /// color ramp differs slightly per column and the row reads as one smooth gradient.
+    private func clockHour(_ slot: Slot) -> Double { Double(slot.hour) + Double(slot.minute) / 60 }
+
+    /// A gradient with a stop at each column center colored by that column's position on the
+    /// continuous time-of-day ramp (plus solid edges) — a smooth intensity gradient.
     private var bandGradient: LinearGradient {
-        guard let firstHour = slots.first?.hour, let lastHour = slots.last?.hour else {
+        guard let first = slots.first, let last = slots.last else {
             return LinearGradient(colors: [.clear], startPoint: .leading, endPoint: .trailing)
         }
         let n = slots.count
         var stops: [Gradient.Stop] = [
-            Gradient.Stop(color: Palette.color(forHour: firstHour, scheme), location: 0)
+            Gradient.Stop(color: Palette.color(forHour: clockHour(first), scheme), location: 0)
         ]
         for i in slots.indices {
             let location = (Double(i) + 0.5) / Double(n)
-            stops.append(Gradient.Stop(color: Palette.color(forHour: slots[i].hour, scheme), location: location))
+            stops.append(Gradient.Stop(color: Palette.color(forHour: clockHour(slots[i]), scheme), location: location))
         }
-        stops.append(Gradient.Stop(color: Palette.color(forHour: lastHour, scheme), location: 1))
+        stops.append(Gradient.Stop(color: Palette.color(forHour: clockHour(last), scheme), location: 1))
         return LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
     }
 
@@ -221,10 +235,11 @@ private struct RibbonRow: View {
         let label = RibbonFormatter.slotLabel(
             for: slot, timeZone: row.city.timeZone, locale: locale, is12h: is12h
         )
-        let numberColor = Palette.number(forHour: slot.hour, scheme)
+        let numberColor = Palette.number(forHour: clockHour(slot), scheme)
         // Per-cell layout: a bare number centers vertically; a cell with a secondary
-        // (meridiem or weekday) is a two-line group, centered.
-        VStack(spacing: 1) {
+        // (meridiem or weekday) is a two-line group, centered. Tight spacing keeps the
+        // label hugging the number (review: "tighter date layout").
+        VStack(spacing: 0) {
             Text(label.primary)
                 .font(.system(size: 16, weight: .medium))
                 .tracking(-0.2)

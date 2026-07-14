@@ -1,69 +1,73 @@
 import SwiftUI
 import TimeStripKit
 
-/// Wall-clock day bands + UI tokens. Iterating — these are the current agreed placeholders,
-/// not frozen.
+/// Continuous wall-clock color ramp + UI tokens. Iterating — placeholders, not frozen.
 ///
-/// Coloring is deliberately simple and utilitarian: each slot's *local clock hour* maps to
-/// one of four bands (night / dawn / day / dusk), and the row is a gradient between adjacent
-/// column band colors so transitions read smoothly without any solar computation. Colors are
-/// lightness-ordered (night darkest → day lightest, twilights between) in both appearances,
-/// so shading survives desaturation / tinted rendering (spec §6.6).
+/// Time of day reads through a smooth *intensity* (brightness) curve on a warm/cool hue: deep
+/// cool night → purple dawn → bright near-neutral day (peak ≈ noon) → warm amber dusk → back
+/// to night. The color is a **continuous** function of the local clock hour (interpolated
+/// between control points), so every column differs slightly and a row reads as one smooth
+/// gradient — not flat per-band blocks. Brightness tracks time-of-day, so shading survives
+/// desaturation / tinted rendering (spec §6.6).
 enum Palette {
 
-    /// Coarse time-of-day band, by local clock hour.
-    enum Band { case night, dawn, day, dusk }
+    private struct Ramp { let points: [(hour: Double, rgb: RGB)] }
 
-    /// Fixed wall-clock band boundaries:
-    /// night 22–05 · dawn 06–07 · day 08–17 · dusk 18–21.
-    static func band(forHour hour: Int) -> Band {
-        switch hour {
-        case 6, 7:    return .dawn
-        case 8...17:  return .day
-        case 18...21: return .dusk
-        default:      return .night  // 0–5, 22–23
+    // Light ("One Row Anatomy" proposal): subtle, premium, calm — calm indigo night rising
+    // through cool lavender dawn to warm ivory day (not yellow), then cozy amber dusk back to
+    // indigo. Softer/lighter than dark mode: night stays light enough that numbers read dark
+    // throughout (matching the light theme). Anchors: night #5E6EA8, dawn #C3B7DF,
+    // day #F9F2DE, dusk #E3A76E.
+    private static let lightRamp = Ramp(points: [
+        (0,  RGB(hex: 0x8C97C6)),  // night — calm indigo
+        (3,  RGB(hex: 0xC1BDE0)),  // night lifting
+        (6,  RGB(hex: 0xE1DAED)),  // dawn — cool lavender
+        (8,  RGB(hex: 0xF2EEEE)),  // dawn → day
+        (11, RGB(hex: 0xFBF5EA)),  // day peak — warm ivory
+        (16, RGB(hex: 0xFAF1E0)),  // day, warming
+        (18, RGB(hex: 0xF3CE9A)),  // dusk — cozy amber
+        (20, RGB(hex: 0xEDBE92)),  // dusk — amber
+        (22, RGB(hex: 0xCFB4BC)),  // fading mauve
+        (23, RGB(hex: 0xB1A9C5)),  // toward night
+        (24, RGB(hex: 0x8C97C6)),  // night (== hour 0)
+    ])
+
+    // Dark ("Option D" intensity): deep blue-purple night rising to a near-white day, warm
+    // amber dusk, back to night. Wide brightness range — daytime glows, night recedes.
+    private static let darkRamp = Ramp(points: [
+        (0,  RGB(hex: 0x191E38)),  // deep night
+        (6,  RGB(hex: 0x554D80)),  // dawn — purple
+        (8,  RGB(hex: 0xB4ADC8)),  // light rising — lavender
+        (11, RGB(hex: 0xE9E2D6)),  // day peak — near-white warm neutral
+        (13, RGB(hex: 0xEADFCC)),  // warming
+        (16, RGB(hex: 0xE0B57F)),  // amber
+        (18, RGB(hex: 0xC9884F)),  // dusk — deep amber
+        (20, RGB(hex: 0x5E4038)),  // dark warm
+        (22, RGB(hex: 0x2A2444)),  // near night
+        (24, RGB(hex: 0x191E38)),  // deep night (== hour 0)
+    ])
+
+    /// Interpolated color for a continuous local clock hour (0..<24; wraps at 24).
+    static func rgb(forHour hour: Double, _ scheme: ColorScheme) -> RGB {
+        let points = (scheme == .dark ? darkRamp : lightRamp).points
+        let wrapped = hour.truncatingRemainder(dividingBy: 24)
+        let h = wrapped < 0 ? wrapped + 24 : wrapped
+        for i in 1..<points.count where h <= points[i].hour {
+            let lo = points[i - 1], hi = points[i]
+            let t = (h - lo.hour) / (hi.hour - lo.hour)
+            return lo.rgb.lerp(to: hi.rgb, t: t)
         }
+        return points.last!.rgb
     }
 
-    private struct Bands {
-        let night, dawn, day, dusk: RGB
+    static func color(forHour hour: Double, _ scheme: ColorScheme) -> Color {
+        rgb(forHour: hour, scheme).color
     }
 
-    private static let light = Bands(
-        night: RGB(hex: 0x4A5CA0),  // indigo
-        dawn:  RGB(hex: 0xB8A6E0),  // soft violet
-        day:   RGB(hex: 0xFCE7B3),  // warm cream
-        dusk:  RGB(hex: 0xF2A055)   // orange
-    )
-
-    // Warm, higher-contrast dark bands: a warm gold-taupe day lifts clearly off the navy
-    // night, with a violet dawn / amber dusk between. Relative luminance is monotonic
-    // night < dawn < dusk < day.
-    private static let dark = Bands(
-        night: RGB(hex: 0x1B2848),  // navy, darkest
-        dawn:  RGB(hex: 0x453C6B),  // cool violet
-        day:   RGB(hex: 0x7C7358),  // warm gold-taupe, lightest
-        dusk:  RGB(hex: 0x6B472C)   // warm amber
-    )
-
-    static func rgb(for band: Band, _ scheme: ColorScheme) -> RGB {
-        let b = scheme == .dark ? dark : light
-        switch band {
-        case .night: return b.night
-        case .dawn:  return b.dawn
-        case .day:   return b.day
-        case .dusk:  return b.dusk
-        }
-    }
-
-    static func color(forHour hour: Int, _ scheme: ColorScheme) -> Color {
-        rgb(for: band(forHour: hour), scheme).color
-    }
-
-    /// Number color chosen for contrast against the slot's own band luminance, so it stays
-    /// legible over both bright day and dark night cells.
-    static func number(forHour hour: Int, _ scheme: ColorScheme) -> Color {
-        let bg = rgb(for: band(forHour: hour), scheme)
+    /// Number color chosen for contrast against the cell's own luminance, so it stays legible
+    /// over both bright (day) and dark (night) cells — flips automatically along the ramp.
+    static func number(forHour hour: Double, _ scheme: ColorScheme) -> Color {
+        let bg = rgb(forHour: hour, scheme)
         let luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b
         return luminance > 0.5 ? Color(hex: 0x1D1D1F) : Color(hex: 0xF4F6FB)
     }
@@ -74,7 +78,7 @@ enum Palette {
     }
 
     static func nowFrame(_ scheme: ColorScheme) -> Color {
-        (scheme == .dark ? Color(hex: 0xFFFFFF) : Color(hex: 0x1D1D1F)).opacity(0.8)
+        (scheme == .dark ? Color(hex: 0xFFFFFF) : Color(hex: 0x1D1D1F)).opacity(0.9)
     }
 }
 
