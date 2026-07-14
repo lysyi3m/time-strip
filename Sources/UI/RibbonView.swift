@@ -12,7 +12,6 @@ private enum Metrics {
     static let rowHeight: CGFloat = 56
     static let rowSpacing: CGFloat = 10
     static let rowCornerRadius: CGFloat = 12
-    static let nowFrameLineWidth: CGFloat = 2
     /// No gap is carved at day boundaries (`boundaryGap = 0`) — the ribbon is one continuous
     /// bar (only the row's outer ends are rounded), so adjacent days meet seamlessly and the
     /// date slot marks the change. The now-frame is a rounded box around the current column that
@@ -20,10 +19,12 @@ private enum Metrics {
     /// first row and below the last (Apple lets key indicators breathe). Nothing is carved
     /// underneath, so its rounded corners sit cleanly over the solid ribbon.
     static let boundaryGap: CGFloat = 0
-    static let nowFrameBreathe: CGFloat = 4
+    /// The glass capsule overhangs the stack generously (not a hug) so it floats like a panel
+    /// laid over the grid — matching the designer reference.
+    static let nowFrameBreathe: CGFloat = 14
     static let nowFrameInsetX: CGFloat = 0
     static let nowFrameInsetY: CGFloat = -nowFrameBreathe
-    static let nowFrameCornerRadius: CGFloat = rowCornerRadius + nowFrameBreathe
+    static let nowFrameCornerRadius: CGFloat = 20
 }
 
 /// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6.
@@ -74,7 +75,8 @@ public struct RibbonView: View {
                         row: snapshot.rows[i],
                         now: snapshot.now,
                         is12h: is12h,
-                        locale: locale
+                        locale: locale,
+                        nowColumnIndex: snapshot.nowColumnIndex
                     )
                 }
             }
@@ -83,13 +85,25 @@ public struct RibbonView: View {
         .frame(width: Metrics.railWidth + ribbonWidth, height: rowsHeight, alignment: .topLeading)
     }
 
+    /// A slab of frosted glass laid over the current column — not a stroked outline. Read from
+    /// three light cues instead of a hard border (designer note): a faint translucent fill, a
+    /// 1px inner shadow for recessed depth, and a top-lit 1px rim highlight. Centered on the
+    /// fixed nowColumnIndex; breathes above/below the stack (invariant §6.3 — one vertical line).
     private var nowFrame: some View {
-        // Overhangs the stack top/bottom, centered on the fixed nowColumnIndex. Uses `.stroke`
-        // (centered on the edge), not `.strokeBorder` (inset inward) — so the border straddles
-        // the slot boundary and bisects an adjacent day-gap symmetrically, rather than sitting
-        // a half-stroke inside it (which made the 23→border and border→date gaps unequal).
-        RoundedRectangle(cornerRadius: Metrics.nowFrameCornerRadius)
-            .stroke(Palette.nowFrame(scheme), lineWidth: Metrics.nowFrameLineWidth)
+        let r = Metrics.nowFrameCornerRadius
+        return RoundedRectangle(cornerRadius: r, style: .continuous)
+            .fill(Palette.nowGlassFill(scheme)
+                .shadow(.inner(color: Palette.nowGlassInnerShadow(scheme), radius: 1.5, x: 0, y: 1)))
+            .overlay(
+                // A crisp near-white rim tracing the whole capsule (brightest at the top). Unlike
+                // a top-only highlight it reads on every side, so the marker stays legible over
+                // bright daytime ribbons where a translucent fill alone would disappear.
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(Palette.nowGlassRim(scheme), lineWidth: 1.5)
+            )
+            // Soft ambient shadow so the panel floats above the grid and its edge separates from
+            // the ribbons beneath (does most of its work in light mode).
+            .shadow(color: .black.opacity(0.12), radius: 7, x: 0, y: 2)
             .frame(
                 width: Metrics.slotWidth - 2 * Metrics.nowFrameInsetX,
                 height: rowsHeight - 2 * Metrics.nowFrameInsetY
@@ -110,6 +124,7 @@ private struct RowView: View {
     let now: Date
     let is12h: Bool
     let locale: Locale
+    let nowColumnIndex: Int
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -138,7 +153,7 @@ private struct RowView: View {
                 )
             )
 
-            RibbonRow(row: row, is12h: is12h, locale: locale)
+            RibbonRow(row: row, is12h: is12h, locale: locale, nowColumnIndex: nowColumnIndex)
         }
     }
 }
@@ -148,6 +163,7 @@ private struct RibbonRow: View {
     let row: RowSnapshot
     let is12h: Bool
     let locale: Locale
+    let nowColumnIndex: Int
     @Environment(\.colorScheme) private var scheme
 
     private var slots: [Slot] { row.slots }
@@ -267,12 +283,15 @@ private struct RibbonRow: View {
             for: slot, timeZone: row.city.timeZone, locale: locale, is12h: is12h
         )
         let numberColor = Palette.number(forHour: clockHour(slot), scheme)
+        let isNow = i == nowColumnIndex
         // Per-cell layout: a bare number centers vertically; a cell with a secondary
         // (meridiem or weekday) is a two-line group, centered. Tight spacing keeps the
-        // label hugging the number (review: "tighter date layout").
+        // label hugging the number (review: "tighter date layout"). The now-column number is
+        // bolded so the current hour reads regardless of the ribbon behind it — the glass
+        // marker alone can vanish over bright daytime cells.
         VStack(spacing: 0) {
             Text(label.primary)
-                .font(.system(size: 16, weight: .regular))
+                .font(.system(size: 16, weight: isNow ? .bold : .regular))
                 .tracking(0)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)  // shrink to fit rather than truncate if cramped

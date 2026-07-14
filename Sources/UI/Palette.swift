@@ -77,8 +77,31 @@ enum Palette {
         scheme == .dark ? Color(hex: 0xFFFFFF) : Color(hex: 0x1D1D1F)
     }
 
-    static func nowFrame(_ scheme: ColorScheme) -> Color {
-        (scheme == .dark ? Color(hex: 0xFFFFFF) : Color(hex: 0x1D1D1F)).opacity(0.9)
+    // MARK: now-indicator "frosted glass" tokens
+    //
+    // The NOW marker is a translucent glass slab, not a stroke: a milky fill, a recessed inner
+    // shadow, and a top-lit rim highlight. Placeholders — tuned by eye over the ribbons.
+
+    /// Milky translucent fill — lightens the current column like frosted acrylic. Kept within the
+    /// designer's 10–15% so it doesn't wash out the now-column numbers underneath (the most
+    /// important ones); the glass reads mostly from its rim highlight + inner shadow.
+    static func nowGlassFill(_ scheme: ColorScheme) -> Color {
+        Color.white.opacity(scheme == .dark ? 0.12 : 0.15)
+    }
+
+    /// Inner shadow that recesses the glass slightly into the surface for depth.
+    static func nowGlassInnerShadow(_ scheme: ColorScheme) -> Color {
+        Color.black.opacity(scheme == .dark ? 0.28 : 0.18)
+    }
+
+    /// Crisp near-white rim tracing the whole capsule — brightest at the top, but still clearly
+    /// present down the sides and along the bottom so the marker reads on any ribbon behind it.
+    static func nowGlassRim(_ scheme: ColorScheme) -> LinearGradient {
+        LinearGradient(
+            colors: [.white.opacity(0.95), .white.opacity(0.55)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 
