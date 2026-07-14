@@ -25,13 +25,16 @@ struct PlaceholderProvider: TimelineProvider {
 
 struct TimeStripWidgetEntryView: View {
     var entry: PlaceholderEntry
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        RibbonView(
-            snapshot: RibbonFixtures.fourRows,
+        WidgetRibbonView(
+            snapshot: RibbonFixtures.fiveRows,
             is12h: RibbonFormatter.uses12HourClock(locale: .current)
         )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // center within the family bounds
+        // Required since macOS 14: declare the widget's background via `.containerBackground`
+        // so WidgetKit composits it (and can offer background removal in some contexts).
+        .containerBackground(WidgetRibbonView.background(for: scheme), for: .widget)
     }
 }
 
@@ -45,12 +48,14 @@ struct TimeStripWidget: Widget {
         .configurationDisplayName("Time Strip")
         .description("Time zones as day/night ribbons.")
         .supportedFamilies([.systemExtraLarge])
-        // Use the full family bounds (default content margins would shrink the usable
-        // width below the ribbon's fixed layout and clip the last column).
-        .contentMarginsDisabled()
+        // Keep WidgetKit's standard content margins (~16pt, HIG): the content is sized to fit
+        // within them and scales to fit, so it no longer needs to claim the full bounds.
     }
 }
 
-// NOTE: macOS does not support previewing widgets in Xcode's canvas ("This platform does
-// not support previewing widgets"). Preview the ribbon itself via TimeStripUI's
-// RibbonPreviews instead (canvas works from the app/framework, not this extension).
+// NOTE: the widget itself CANNOT be previewed in Xcode's canvas on macOS. Verified with the
+// modern `#Preview("…", as: .systemExtraLarge)` macro (Xcode 17F113 / macOS 26.5): the canvas
+// fails with "This platform does not support previewing widgets — No plugin is registered to
+// launch the process type widgetExtension." It's the widgetExtension process type macOS won't
+// launch for previews, so no API avoids it. Preview the widget's content view instead —
+// TimeStripUI's RibbonView, via the app target's RibbonPreviews.

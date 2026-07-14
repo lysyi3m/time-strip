@@ -4,23 +4,27 @@ import TimeStripKit
 /// Layout constants for `.systemExtraLarge`. `slotWidth` is the constant grid stride;
 /// numbers sit at fixed per-index centers regardless of day boundaries (spec §6.2/§6.5).
 private enum Metrics {
-    static let railWidth: CGFloat = 96
-    static let slotWidth: CGFloat = 78
-    static let rowHeight: CGFloat = 54
+    // Sized so the natural content fills the `.systemExtraLarge` tile minus Apple's standard
+    // 16pt widget content margin (spec §3 ≈ 726×354 → content ≈ 694×322): rail 94 + 8×75 =
+    // 694 wide; 5×58 + 4×8 = 322 tall. Fonts (below) follow suit at ≥11pt with a clear
+    // hierarchy per the HIG.
+    static let railWidth: CGFloat = 94
+    static let slotWidth: CGFloat = 75
+    static let rowHeight: CGFloat = 58
     static let rowSpacing: CGFloat = 8
     static let rowCornerRadius: CGFloat = 12
-    static let nowFrameCornerRadius: CGFloat = 16
     static let nowFrameLineWidth: CGFloat = 2
     /// Small gap carved at a day boundary; each day-run becomes its own rounded pill. The
     /// gap is *inset* from the two adjacent slots — column centers never move (invariant §6.2).
     static let boundaryGap: CGFloat = 6
-    /// The now-frame floats around the column: it overhangs the row stack vertically, but its
-    /// left/right edges sit exactly on the column's slot boundaries (`insetX = 0`). Because a
-    /// day-gap is carved *centered* on the slot boundary, the frame edge then bisects any
-    /// adjacent gap — equal spacing to the day-pill on each side (`23 |·| date`), rather than
-    /// swallowing the whole gap.
+    /// The now-frame sits a *uniform* `boundaryGap/2` outside the day-pills on every side: its
+    /// right edge bisects the carved gap (`insetX = 0` → on the slot boundary, gap/2 beyond the
+    /// pill edge), and it overhangs the row stack by the same gap/2 vertically. With a corner
+    /// radius of `rowCornerRadius + gap/2`, the frame's rounded corners share a center with the
+    /// day-pill corners where they meet a boundary — concentric curves, constant gap.
     static let nowFrameInsetX: CGFloat = 0
-    static let nowFrameInsetY: CGFloat = -9
+    static let nowFrameInsetY: CGFloat = -boundaryGap / 2
+    static let nowFrameCornerRadius: CGFloat = rowCornerRadius + boundaryGap / 2
 }
 
 /// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6.
@@ -38,6 +42,20 @@ public struct RibbonView: View {
         self.snapshot = snapshot
         self.is12h = is12h
         self.locale = locale
+    }
+
+    /// The ribbon's natural (unscaled) size for a snapshot, from the fixed layout metrics.
+    /// Callers that must fit it into a container (e.g. a widget of unknown bounds) use this to
+    /// compute a scale factor — Apple's guidance is to adapt to the container, since widget
+    /// sizes vary by device/platform and are only known at runtime (`displaySize`).
+    public static func idealSize(for snapshot: RibbonSnapshot) -> CGSize {
+        let cols = snapshot.columnInstants.count
+        let rows = snapshot.rows.count
+        return CGSize(
+            width: Metrics.railWidth + CGFloat(cols) * Metrics.slotWidth,
+            height: CGFloat(rows) * Metrics.rowHeight
+                + CGFloat(max(0, rows - 1)) * Metrics.rowSpacing
+        )
     }
 
     private var columnCount: Int { snapshot.columnInstants.count }
@@ -99,13 +117,14 @@ private struct RowView: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.city.name)
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.system(size: 13, weight: .medium))
                     .tracking(-0.1)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .truncationMode(.tail)
                     .foregroundStyle(Palette.railLabel(scheme))
                 Text(RibbonFormatter.zoneTag(for: row.city, at: now, override: nil))
-                    .font(.system(size: 9, weight: .regular))
+                    .font(.system(size: 11, weight: .regular))
                     .tracking(0.2)
                     .foregroundStyle(Palette.railLabel(scheme).opacity(0.5))
             }
@@ -209,9 +228,11 @@ private struct RibbonRow: View {
             Text(label.primary)
                 .font(.system(size: 16, weight: .medium))
                 .tracking(-0.2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)  // shrink to fit rather than truncate if cramped
             if !label.secondary.isEmpty {
                 Text(label.secondary)
-                    .font(.system(size: 9, weight: .regular))
+                    .font(.system(size: 11, weight: .regular))
                     .tracking(0.2)
             }
         }

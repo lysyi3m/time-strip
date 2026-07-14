@@ -29,7 +29,8 @@ public enum RibbonFixtures {
     public static var twoRows: RibbonSnapshot { snapshot([warsaw, singapore]) }
     public static var threeRows: RibbonSnapshot { snapshot([warsaw, newYork, singapore]) }
     public static var fourRows: RibbonSnapshot { snapshot([london, warsaw, newYork, singapore]) }
-    public static var fiveRows: RibbonSnapshot { snapshot([london, warsaw, newYork, losAngeles, singapore]) }
+    /// West → east by longitude; also the intended initial default city order.
+    public static var fiveRows: RibbonSnapshot { snapshot([losAngeles, newYork, london, warsaw, singapore]) }
 
     /// A window with no in-window day boundary for any row.
     public static var noBoundary: RibbonSnapshot {
