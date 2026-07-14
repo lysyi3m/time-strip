@@ -4,26 +4,26 @@ import TimeStripKit
 /// Layout constants for `.systemExtraLarge`. `slotWidth` is the constant grid stride;
 /// numbers sit at fixed per-index centers regardless of day boundaries (spec §6.2/§6.5).
 private enum Metrics {
-    // Sized so the natural content fills the `.systemExtraLarge` tile minus Apple's standard
-    // 16pt widget content margin (spec §3 ≈ 726×354 → content ≈ 694×320): rail 94 + 8×75 =
-    // 694 wide; 5×56 + 4×10 = 320 tall. Fonts (below) follow suit at ≥11pt with a clear
-    // hierarchy per the HIG. Row spacing is generous (review: "more breathing room").
-    static let railWidth: CGFloat = 94
-    static let slotWidth: CGFloat = 75
+    // Slightly narrower cells free rail width for a larger city name, while staying comfortably
+    // wider than tall. Content fills the `.systemExtraLarge` tile minus Apple's 16pt margin
+    // (≈726×354 → ≈700×320): rail 156 + 8×68 = 700 wide; 5×56 + 4×10 = 320 tall.
+    static let railWidth: CGFloat = 156
+    static let slotWidth: CGFloat = 68
     static let rowHeight: CGFloat = 56
     static let rowSpacing: CGFloat = 10
     static let rowCornerRadius: CGFloat = 12
     static let nowFrameLineWidth: CGFloat = 2
     /// No gap is carved at day boundaries (`boundaryGap = 0`) — the ribbon is one continuous
     /// bar (only the row's outer ends are rounded), so adjacent days meet seamlessly and the
-    /// date slot marks the change. The now-frame is a rounded box hugging the current column,
-    /// overhanging every side by half its stroke. Because nothing is carved underneath, its
-    /// rounded corners sit cleanly over the solid ribbon — no square cell corner is exposed.
+    /// date slot marks the change. The now-frame is a rounded box around the current column that
+    /// *breathes*: rather than hugging the ribbon, it stands off `nowFrameBreathe` pt above the
+    /// first row and below the last (Apple lets key indicators breathe). Nothing is carved
+    /// underneath, so its rounded corners sit cleanly over the solid ribbon.
     static let boundaryGap: CGFloat = 0
-    static let nowFrameOverhang: CGFloat = nowFrameLineWidth / 2
+    static let nowFrameBreathe: CGFloat = 4
     static let nowFrameInsetX: CGFloat = 0
-    static let nowFrameInsetY: CGFloat = -nowFrameOverhang
-    static let nowFrameCornerRadius: CGFloat = rowCornerRadius + nowFrameOverhang
+    static let nowFrameInsetY: CGFloat = -nowFrameBreathe
+    static let nowFrameCornerRadius: CGFloat = rowCornerRadius + nowFrameBreathe
 }
 
 /// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6.
@@ -116,18 +116,27 @@ private struct RowView: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.city.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .tracking(-0.1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .truncationMode(.tail)
                     .foregroundStyle(Palette.railLabel(scheme))
                 Text(RibbonFormatter.zoneTag(for: row.city, at: now, override: nil))
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.system(size: 12, weight: .regular))
                     .tracking(0.2)
-                    .foregroundStyle(Palette.railLabel(scheme).opacity(0.5))
+                    .foregroundStyle(Palette.railLabel(scheme).opacity(0.35))
             }
             .frame(width: Metrics.railWidth, alignment: .leading)
+            // Whisper-faint fade so the rail feels seated in the material rather than printed on
+            // top — brightest at the left edge, gone before it meets the ribbon.
+            .background(
+                LinearGradient(
+                    colors: [Palette.railLabel(scheme).opacity(0.03), .clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
 
             RibbonRow(row: row, is12h: is12h, locale: locale)
         }
@@ -151,7 +160,11 @@ private struct RibbonRow: View {
             Rectangle()
                 .fill(bandGradient)
                 .frame(width: width, height: Metrics.rowHeight)
+                .overlay(materialShading)
                 .mask(runMask)
+                // Ambient (not drop) shadow — near-zero offset, soft, ~3% — so each ribbon lifts
+                // just off the material rather than sitting flat on it.
+                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 1)
 
             ForEach(slots.indices, id: \.self) { i in
                 slotContent(i)
@@ -207,6 +220,24 @@ private struct RibbonRow: View {
     }
 
 
+    /// Barely-there vertical material shading so each ribbon reads as a tangible object, not a
+    /// flat swatch (designer note): a hairline top highlight (0.5pt, fading out by ~4% down) plus
+    /// a gentle top-to-bottom darkening (≈100% → 94% luminance). Almost invisible in isolation;
+    /// gives the surface subtle dimension. Applied before the run-mask so it clips to the pills.
+    private var materialShading: some View {
+        let h = Metrics.rowHeight
+        return LinearGradient(
+            stops: [
+                Gradient.Stop(color: .white.opacity(0.18), location: 0),
+                Gradient.Stop(color: .white.opacity(0), location: 1 / h),   // crisp ~1px top edge
+                Gradient.Stop(color: .black.opacity(0), location: 1 / h),
+                Gradient.Stop(color: .black.opacity(0.06), location: 1),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     /// Local clock hour as a continuous value (sub-hour zones carry their :30/:45), so the
     /// color ramp differs slightly per column and the row reads as one smooth gradient.
     private func clockHour(_ slot: Slot) -> Double { Double(slot.hour) + Double(slot.minute) / 60 }
@@ -241,8 +272,8 @@ private struct RibbonRow: View {
         // label hugging the number (review: "tighter date layout").
         VStack(spacing: 0) {
             Text(label.primary)
-                .font(.system(size: 16, weight: .medium))
-                .tracking(-0.2)
+                .font(.system(size: 16, weight: .regular))
+                .tracking(0)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)  // shrink to fit rather than truncate if cramped
             if !label.secondary.isEmpty {

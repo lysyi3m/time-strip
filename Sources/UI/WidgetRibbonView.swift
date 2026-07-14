@@ -4,7 +4,7 @@ import TimeStripKit
 /// The widget's full content — the ribbon fit into the family bounds. This is exactly what the
 /// real `TimeStripWidget` renders *and* what the app-target preview renders, so the two cannot
 /// drift. The background is supplied by the surrounding context: the widget applies it via
-/// `.containerBackground`, the preview as a matching backdrop — both from `background(for:)`,
+/// `.containerBackground`, the preview as a matching backdrop — both use `WidgetBackground`,
 /// so they stay identical.
 ///
 /// Per Apple's guidance, widget point sizes vary by device/platform (macOS `.systemExtraLarge`
@@ -20,12 +20,6 @@ public struct WidgetRibbonView: View {
         self.snapshot = snapshot
         self.is12h = is12h
         self.locale = locale
-    }
-
-    /// The widget's container background for `scheme`. Placeholder pending designer tokens —
-    /// kept here so the widget's `.containerBackground` and the preview's backdrop match.
-    public static func background(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: 0x0A0A0C) : Color(hex: 0xF2F2F7)
     }
 
     public var body: some View {

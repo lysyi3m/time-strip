@@ -30,7 +30,7 @@ private struct WidgetPreview: View {
             locale: is12h ? Locale(identifier: "en_US") : Locale(identifier: "en_GB")
         )
         .frame(width: Self.widgetSize.width, height: Self.widgetSize.height)
-        .background(WidgetRibbonView.background(for: scheme))
+        .background(WidgetBackground(scheme: scheme))
         .clipShape(RoundedRectangle(cornerRadius: Self.tileCornerRadius, style: .continuous))
         .padding(40)
         .background(scheme == .dark ? Color(white: 0.11) : Color(white: 0.88))  // desktop-ish backdrop

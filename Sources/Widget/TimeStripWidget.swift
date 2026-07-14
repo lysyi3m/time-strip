@@ -34,7 +34,7 @@ struct TimeStripWidgetEntryView: View {
         )
         // Required since macOS 14: declare the widget's background via `.containerBackground`
         // so WidgetKit composits it (and can offer background removal in some contexts).
-        .containerBackground(WidgetRibbonView.background(for: scheme), for: .widget)
+        .containerBackground(for: .widget) { WidgetBackground(scheme: scheme) }
     }
 }
 
