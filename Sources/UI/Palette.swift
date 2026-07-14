@@ -1,73 +1,69 @@
 import SwiftUI
 import TimeStripKit
 
-/// Solar color ramp for the gradient row shading, plus UI tokens. Iterating — these are
-/// the current agreed placeholders, not frozen.
+/// Wall-clock day bands + UI tokens. Iterating — these are the current agreed placeholders,
+/// not frozen.
 ///
-/// The ramp maps sun elevation → color and is **directional**: at the same low elevation a
-/// *rising* sun tints cool violet (dawn) while a *setting* sun tints warm orange (dusk),
-/// per the golden-hour reference. Colors are lightness-ordered (day lightest → deep night
-/// darkest) in both appearances, so shading survives desaturation / tinted rendering.
+/// Coloring is deliberately simple and utilitarian: each slot's *local clock hour* maps to
+/// one of four bands (night / dawn / day / dusk), and the row is a gradient between adjacent
+/// column band colors so transitions read smoothly without any solar computation. Colors are
+/// lightness-ordered (night darkest → day lightest, twilights between) in both appearances,
+/// so shading survives desaturation / tinted rendering (spec §6.6).
 enum Palette {
 
-    // Vivid ramp anchors. Light stays appropriately light; dark stays dark, with the
-    // dawn/dusk tints saturated enough to read.
-    private struct Anchors {
-        let day, dawn, dusk, night, deep: RGB
-    }
+    /// Coarse time-of-day band, by local clock hour.
+    enum Band { case night, dawn, day, dusk }
 
-    private static let light = Anchors(
-        day:   RGB(hex: 0xFCE7B3),  // warm gold
-        dawn:  RGB(hex: 0xAEA0E0),  // cool violet
-        dusk:  RGB(hex: 0xF2A055),  // warm orange
-        night: RGB(hex: 0x8698D8),  // periwinkle
-        deep:  RGB(hex: 0x47589C)   // deep blue
-    )
-
-    // Tuned so relative luminance is strictly monotonic deep < night < dawn/dusk < day
-    // (day is the lightest anchor), keeping the violet/amber hues — required for
-    // desaturation-safe shading (spec §6.6).
-    private static let dark = Anchors(
-        day:   RGB(hex: 0x4C5461),  // lightest
-        dawn:  RGB(hex: 0x433A63),  // cool violet, below day
-        dusk:  RGB(hex: 0x5C4531),  // warm amber, below day
-        night: RGB(hex: 0x202A45),
-        deep:  RGB(hex: 0x12172A)   // darkest
-    )
-
-    /// Elevation control points (degrees, color), low → high. The mid "golden" anchor is
-    /// direction-dependent (dawn vs dusk).
-    private static func stops(rising: Bool, _ scheme: ColorScheme) -> [(elevation: Double, rgb: RGB)] {
-        let a = scheme == .dark ? dark : light
-        return [
-            (-14, a.deep),
-            (-6,  a.night),
-            (0,   rising ? a.dawn : a.dusk),  // golden/blue hour tint
-            (8,   a.day),
-        ]
-    }
-
-    /// Interpolated sRGB color for a given elevation + sun direction.
-    static func rgb(forElevation elevation: Double, rising: Bool, _ scheme: ColorScheme) -> RGB {
-        let points = stops(rising: rising, scheme)
-        if elevation <= points.first!.elevation { return points.first!.rgb }
-        if elevation >= points.last!.elevation { return points.last!.rgb }
-        for i in 1..<points.count where elevation < points[i].elevation {
-            let lo = points[i - 1], hi = points[i]
-            let t = (elevation - lo.elevation) / (hi.elevation - lo.elevation)
-            return lo.rgb.lerp(to: hi.rgb, t: t)
+    /// Fixed wall-clock band boundaries:
+    /// night 22–05 · dawn 06–07 · day 08–17 · dusk 18–21.
+    static func band(forHour hour: Int) -> Band {
+        switch hour {
+        case 6, 7:    return .dawn
+        case 8...17:  return .day
+        case 18...21: return .dusk
+        default:      return .night  // 0–5, 22–23
         }
-        return points.last!.rgb
     }
 
-    static func color(forElevation elevation: Double, rising: Bool, _ scheme: ColorScheme) -> Color {
-        rgb(forElevation: elevation, rising: rising, scheme).color
+    private struct Bands {
+        let night, dawn, day, dusk: RGB
     }
 
-    /// Number color chosen for contrast against the slot's own background luminance, so it
-    /// stays legible over both bright day and dark night cells.
-    static func number(onElevation elevation: Double, rising: Bool, _ scheme: ColorScheme) -> Color {
-        let bg = rgb(forElevation: elevation, rising: rising, scheme)
+    private static let light = Bands(
+        night: RGB(hex: 0x4A5CA0),  // indigo
+        dawn:  RGB(hex: 0xB8A6E0),  // soft violet
+        day:   RGB(hex: 0xFCE7B3),  // warm cream
+        dusk:  RGB(hex: 0xF2A055)   // orange
+    )
+
+    // Warm, higher-contrast dark bands: a warm gold-taupe day lifts clearly off the navy
+    // night, with a violet dawn / amber dusk between. Relative luminance is monotonic
+    // night < dawn < dusk < day.
+    private static let dark = Bands(
+        night: RGB(hex: 0x1B2848),  // navy, darkest
+        dawn:  RGB(hex: 0x453C6B),  // cool violet
+        day:   RGB(hex: 0x7C7358),  // warm gold-taupe, lightest
+        dusk:  RGB(hex: 0x6B472C)   // warm amber
+    )
+
+    static func rgb(for band: Band, _ scheme: ColorScheme) -> RGB {
+        let b = scheme == .dark ? dark : light
+        switch band {
+        case .night: return b.night
+        case .dawn:  return b.dawn
+        case .day:   return b.day
+        case .dusk:  return b.dusk
+        }
+    }
+
+    static func color(forHour hour: Int, _ scheme: ColorScheme) -> Color {
+        rgb(for: band(forHour: hour), scheme).color
+    }
+
+    /// Number color chosen for contrast against the slot's own band luminance, so it stays
+    /// legible over both bright day and dark night cells.
+    static func number(forHour hour: Int, _ scheme: ColorScheme) -> Color {
+        let bg = rgb(for: band(forHour: hour), scheme)
         let luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b
         return luminance > 0.5 ? Color(hex: 0x1D1D1F) : Color(hex: 0xF4F6FB)
     }
@@ -79,11 +75,6 @@ enum Palette {
 
     static func nowFrame(_ scheme: ColorScheme) -> Color {
         (scheme == .dark ? Color(hex: 0xFFFFFF) : Color(hex: 0x1D1D1F)).opacity(0.8)
-    }
-
-    /// Faint vertical tick marking a day boundary.
-    static func boundaryTick(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: 0x4B4C52) : Color(hex: 0xE5E7EB)
     }
 }
 
