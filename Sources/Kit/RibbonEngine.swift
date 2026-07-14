@@ -43,6 +43,33 @@ public enum RibbonEngine {
         )
     }
 
+    /// Bakes `count` consecutive hourly snapshots for a widget timeline: the first at the start
+    /// of `now`'s hour (in the reference city's zone), each subsequent one advancing a fixed
+    /// 3600 s. Each snapshot's `now` is its own (hour-aligned) instant, so the caller can use it
+    /// directly as the timeline entry's date. Pure and WidgetKit-free — the Widget target wraps
+    /// each snapshot in a `TimelineEntry`. Content only changes on the hour (the now-frame is
+    /// fixed), so one call bakes a full day of entries and the reload budget is a non-issue.
+    public static func hourlySnapshots(
+        now: Date,
+        cities: [City],
+        count: Int = 24,
+        window: WindowSpec = .init(),
+        referenceIndex: Int = 0,
+        classifier: SolarClassifier = .init()
+    ) -> [RibbonSnapshot] {
+        let referenceTZ = cities.indices.contains(referenceIndex)
+            ? cities[referenceIndex].timeZone
+            : .gmt
+        let hourStart = floorToHour(now, in: referenceTZ)
+        return (0..<max(0, count)).map { n in
+            let date = hourStart.addingTimeInterval(Double(n) * 3600)
+            return snapshot(
+                now: date, cities: cities, window: window,
+                referenceIndex: referenceIndex, classifier: classifier
+            )
+        }
+    }
+
     // MARK: - Per-row slots
 
     private static func slots(
