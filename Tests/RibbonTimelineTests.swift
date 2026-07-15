@@ -4,15 +4,8 @@ import XCTest
 /// P5: the pure timeline-baking helper the Widget wraps in `TimelineEntry`s.
 final class RibbonTimelineTests: XCTestCase {
 
-    private func city(_ id: String, _ name: String, _ tzid: String, _ lat: Double, _ lon: Double) -> City {
-        City(
-            id: id, name: name, country: "", admin1: nil, tzid: tzid,
-            coordinate: GeoCoordinate(latitude: lat, longitude: lon), population: 0
-        )
-    }
-
-    private var warsaw: City { city("europe-warsaw", "Warsaw", "Europe/Warsaw", 52.2297, 21.0122) }
-    private var singapore: City { city("asia-singapore", "Singapore", "Asia/Singapore", 1.3521, 103.8198) }
+    private var warsaw: City { City(name: "Warsaw", tzid: "Europe/Warsaw") }
+    private var singapore: City { City(name: "Singapore", tzid: "Asia/Singapore") }
 
     private func instant(_ y: Int, _ mo: Int, _ d: Int, _ h: Int, _ mi: Int, tzid: String) -> Date {
         var cal = Calendar(identifier: .gregorian)

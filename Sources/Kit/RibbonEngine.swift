@@ -4,16 +4,15 @@ import Foundation
 /// absolute-time column grid, per-city rows, per-slot local time, and day-boundary flags.
 ///
 /// The grid steps by a fixed 3600 s (not "add one clock hour"), so every column is one
-/// absolute instant shared across all rows — the absolute-time-alignment invariant. Each
-/// slot's `period` is filled by the injected `SolarClassifier` from the slot's absolute
-/// instant and the city's coordinate.
+/// absolute instant shared across all rows — the absolute-time-alignment invariant. Coloring
+/// is a pure function of each slot's local clock hour (in the view), so the engine carries no
+/// solar/coordinate data.
 public enum RibbonEngine {
     public static func snapshot(
         now: Date,
         cities: [City],
         window: WindowSpec = .init(),
-        referenceIndex: Int = 0,
-        classifier: SolarClassifier = .init()
+        referenceIndex: Int = 0
     ) -> RibbonSnapshot {
         let columnCount = window.columnCount
 
@@ -31,7 +30,7 @@ public enum RibbonEngine {
         let rows = cities.map { city in
             RowSnapshot(
                 city: city,
-                slots: slots(for: city, columnInstants: columnInstants, classifier: classifier)
+                slots: slots(for: city, columnInstants: columnInstants)
             )
         }
 
@@ -54,8 +53,7 @@ public enum RibbonEngine {
         cities: [City],
         count: Int = 24,
         window: WindowSpec = .init(),
-        referenceIndex: Int = 0,
-        classifier: SolarClassifier = .init()
+        referenceIndex: Int = 0
     ) -> [RibbonSnapshot] {
         let referenceTZ = cities.indices.contains(referenceIndex)
             ? cities[referenceIndex].timeZone
@@ -65,7 +63,7 @@ public enum RibbonEngine {
             let date = hourStart.addingTimeInterval(Double(n) * 3600)
             return snapshot(
                 now: date, cities: cities, window: window,
-                referenceIndex: referenceIndex, classifier: classifier
+                referenceIndex: referenceIndex
             )
         }
     }
@@ -74,8 +72,7 @@ public enum RibbonEngine {
 
     private static func slots(
         for city: City,
-        columnInstants: [Date],
-        classifier: SolarClassifier
+        columnInstants: [Date]
     ) -> [Slot] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = city.timeZone
@@ -100,8 +97,7 @@ public enum RibbonEngine {
                 instant: columnInstants[i],
                 hour: c.hour ?? 0,
                 minute: c.minute ?? 0,
-                isDayStart: isDayStart,
-                period: classifier.period(at: columnInstants[i], coordinate: city.coordinate)
+                isDayStart: isDayStart
             )
         }
     }

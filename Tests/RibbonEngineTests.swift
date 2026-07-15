@@ -3,27 +3,13 @@ import XCTest
 
 final class RibbonEngineTests: XCTestCase {
 
-    // MARK: - Fixtures (inline; the real cities.json dataset arrives in Phase 6)
+    // MARK: - Fixtures (inline City values; zones come from the OS list via CityCatalog)
 
-    private func city(
-        _ id: String,
-        _ name: String,
-        _ tzid: String,
-        _ lat: Double,
-        _ lon: Double
-    ) -> City {
-        City(
-            id: id, name: name, country: "", admin1: nil, tzid: tzid,
-            coordinate: GeoCoordinate(latitude: lat, longitude: lon),
-            population: 0
-        )
-    }
-
-    private var warsaw: City { city("europe-warsaw", "Warsaw", "Europe/Warsaw", 52.2297, 21.0122) }
-    private var london: City { city("europe-london", "London", "Europe/London", 51.5074, -0.1278) }
-    private var newYork: City { city("america-new-york", "New York", "America/New_York", 40.7128, -74.0060) }
-    private var singapore: City { city("asia-singapore", "Singapore", "Asia/Singapore", 1.3521, 103.8198) }
-    private var kolkata: City { city("asia-kolkata", "Kolkata", "Asia/Kolkata", 22.5726, 88.3639) }
+    private var warsaw: City { City(name: "Warsaw", tzid: "Europe/Warsaw") }
+    private var london: City { City(name: "London", tzid: "Europe/London") }
+    private var newYork: City { City(name: "New York", tzid: "America/New_York") }
+    private var singapore: City { City(name: "Singapore", tzid: "Asia/Singapore") }
+    private var kolkata: City { City(name: "Kolkata", tzid: "Asia/Kolkata") }
 
     // MARK: - Helpers (independent of the engine)
 

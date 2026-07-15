@@ -10,7 +10,7 @@ final class RibbonFormatterTests: XCTestCase {
     ) -> Slot {
         Slot(
             columnIndex: 0, instant: instant, hour: hour, minute: minute,
-            isDayStart: isDayStart, period: .day
+            isDayStart: isDayStart
         )
     }
 
@@ -23,8 +23,7 @@ final class RibbonFormatterTests: XCTestCase {
     }
 
     private func city(_ tzid: String) -> City {
-        City(id: tzid, name: tzid, country: "", admin1: nil, tzid: tzid,
-             coordinate: GeoCoordinate(latitude: 0, longitude: 0), population: 0)
+        City(name: tzid, tzid: tzid)
     }
 
     private let en = Locale(identifier: "en_US")

@@ -137,7 +137,7 @@ private struct RowView: View {
                     .minimumScaleFactor(0.8)
                     .truncationMode(.tail)
                     .foregroundStyle(Palette.railLabel(scheme))
-                Text(RibbonFormatter.zoneTag(for: row.city, at: now, override: nil))
+                Text(RibbonFormatter.zoneTag(for: row.city, at: now, override: row.city.label))
                     .font(.system(size: 12, weight: .regular))
                     .tracking(0.2)
                     .foregroundStyle(Palette.railLabel(scheme).opacity(0.35))

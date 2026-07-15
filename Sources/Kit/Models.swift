@@ -1,47 +1,23 @@
 import Foundation
 
-public struct GeoCoordinate: Codable, Hashable, Sendable {
-    public let latitude: Double
-    public let longitude: Double
-
-    public init(latitude: Double, longitude: Double) {
-        self.latitude = latitude
-        self.longitude = longitude
-    }
-}
-
+/// A time zone the user can place on a row, labeled by a representative city. Sourced from the
+/// OS zone list (`CityCatalog`), so `tzid` is an IANA identifier and `name` its friendly city
+/// name. `label` is an optional per-row manual override for the zone tag (§3), set by the
+/// widget configuration; the catalog leaves it `nil`.
 public struct City: Identifiable, Codable, Hashable, Sendable {
-    public let id: String          // stable slug, e.g. "europe-warsaw"
     public let name: String
-    public let country: String
-    public let admin1: String?
-    public let tzid: String        // IANA identifier
-    public let coordinate: GeoCoordinate
-    public let population: Int
+    public let tzid: String        // IANA identifier, e.g. "Europe/Warsaw"
+    public let label: String?      // manual zone-tag override, or nil to auto-derive
 
+    /// Stable identity for pickers/entities — the IANA id is already unique and stable.
+    public var id: String { tzid }
     public var timeZone: TimeZone { TimeZone(identifier: tzid) ?? .gmt }
 
-    public init(
-        id: String,
-        name: String,
-        country: String,
-        admin1: String?,
-        tzid: String,
-        coordinate: GeoCoordinate,
-        population: Int
-    ) {
-        self.id = id
+    public init(name: String, tzid: String, label: String? = nil) {
         self.name = name
-        self.country = country
-        self.admin1 = admin1
         self.tzid = tzid
-        self.coordinate = coordinate
-        self.population = population
+        self.label = label
     }
-}
-
-public enum DayPeriod: String, Codable, Hashable, Sendable {
-    case day, twilight, night      // real values assigned in P2; P1 uses .day placeholder
 }
 
 public struct Slot: Hashable, Sendable {
@@ -50,22 +26,19 @@ public struct Slot: Hashable, Sendable {
     public let hour: Int            // local hour 0...23 at `instant` in the city's tz
     public let minute: Int          // local minute (0 except sub-hour-offset zones)
     public let isDayStart: Bool     // first slot of a new local day → render date, not hour
-    public var period: DayPeriod    // placeholder (.day) in P1
 
     public init(
         columnIndex: Int,
         instant: Date,
         hour: Int,
         minute: Int,
-        isDayStart: Bool,
-        period: DayPeriod
+        isDayStart: Bool
     ) {
         self.columnIndex = columnIndex
         self.instant = instant
         self.hour = hour
         self.minute = minute
         self.isDayStart = isDayStart
-        self.period = period
     }
 }
 

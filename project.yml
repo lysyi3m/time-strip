@@ -18,15 +18,13 @@ settings:
 
 targets:
 
-  # ── UI-free core: models + time / solar / formatting engines ───────────────
-  # NO SwiftUI / WidgetKit / AppKit imports in Sources/Kit. Bundles cities.json.
+  # ── UI-free core: models + time / formatting engines + zone catalog ────────
+  # NO SwiftUI / WidgetKit / AppKit imports in Sources/Kit.
   TimeStripKit:
     type: framework
     platform: macOS
     sources:
       - Sources/Kit
-      - path: Resources
-        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.kit
@@ -66,7 +64,6 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: Time Strip
         INFOPLIST_KEY_LSUIElement: "NO"
-        INFOPLIST_KEY_NSHumanReadableCopyright: "City data © GeoNames (CC BY 4.0)"
 
   # ── WidgetKit extension: views, timeline provider, configuration intent ────
   TimeStripWidget:
@@ -77,6 +74,9 @@ targets:
     dependencies:
       - target: TimeStripKit
       - target: TimeStripUI
+      # Explicit link so appintentsmetadataprocessor extracts the WidgetConfigurationIntent
+      # metadata WidgetKit reads to render the native Edit-Widget picker.
+      - sdk: AppIntents.framework
     info:
       path: Config/Widget-Info.plist
       properties:
