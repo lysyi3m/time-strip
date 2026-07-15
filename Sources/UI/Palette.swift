@@ -125,7 +125,9 @@ struct RGB {
     var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
 }
 
-extension Color {
+public extension Color {
+    /// A color from a 24-bit `0xRRGGBB` literal, in sRGB. Public so the app target can share the
+    /// same helper instead of redefining it.
     init(hex: UInt) {
         self.init(
             .sRGB,

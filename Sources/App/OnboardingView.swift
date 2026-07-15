@@ -31,8 +31,8 @@ struct OnboardingView: View {
 
     private var canvas: some View {
         LinearGradient(
-            colors: dark ? [Color(rgb: 0x232329), Color(rgb: 0x161618)]
-                         : [Color(rgb: 0xFFFFFF), Color(rgb: 0xEDEDF2)],
+            colors: dark ? [Color(hex: 0x232329), Color(hex: 0x161618)]
+                         : [Color(hex: 0xFFFFFF), Color(hex: 0xEDEDF2)],
             startPoint: .top, endPoint: .bottom
         )
         .ignoresSafeArea()
@@ -81,8 +81,8 @@ struct OnboardingView: View {
     private var wallpaper: LinearGradient {
         LinearGradient(
             colors: dark
-                ? [Color(rgb: 0x243056), Color(rgb: 0x342A4E), Color(rgb: 0x3E2E2C)]
-                : [Color(rgb: 0xCBD6F2), Color(rgb: 0xE4D8EE), Color(rgb: 0xF6E2CE)],
+                ? [Color(hex: 0x243056), Color(hex: 0x342A4E), Color(hex: 0x3E2E2C)]
+                : [Color(hex: 0xCBD6F2), Color(hex: 0xE4D8EE), Color(hex: 0xF6E2CE)],
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
@@ -99,7 +99,7 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(dark ? Color(rgb: 0x2A2A30) : Color(rgb: 0xFFFFFF))
+                .fill(dark ? Color(hex: 0x2A2A30) : Color(hex: 0xFFFFFF))
                 .shadow(color: .black.opacity(dark ? 0.3 : 0.06), radius: 8, y: 3)
         )
         .overlay(
@@ -131,27 +131,15 @@ private struct Step: View {
                 .background(
                     Circle().fill(
                         LinearGradient(
-                            colors: [Color(rgb: 0x0A84FF), Color(rgb: 0x0060DF)],
+                            colors: [Color(hex: 0x0A84FF), Color(hex: 0x0060DF)],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
                 )
-                .shadow(color: Color(rgb: 0x0A84FF).opacity(0.4), radius: 3, y: 1)
+                .shadow(color: Color(hex: 0x0A84FF).opacity(0.4), radius: 3, y: 1)
             Text(text)
                 .font(.system(size: 13))
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-}
-
-private extension Color {
-    init(rgb: UInt) {
-        self.init(
-            .sRGB,
-            red: Double((rgb >> 16) & 0xFF) / 255,
-            green: Double((rgb >> 8) & 0xFF) / 255,
-            blue: Double(rgb & 0xFF) / 255,
-            opacity: 1
-        )
     }
 }

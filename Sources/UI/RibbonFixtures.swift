@@ -1,9 +1,9 @@
 import Foundation
 import TimeStripKit
 
-/// Hardcoded snapshots for Phase 4 previews and the P0/P4 widget placeholder. Built through
-/// the real `RibbonEngine` so shading and boundaries are truthful. Replaced by the timeline
-/// provider's live data in P5.
+/// Fixed snapshots (2–5 rows, with/without a day boundary) shared by the app-target previews and
+/// the UI tests. Built through the real `RibbonEngine` at a fixed instant, so shading and
+/// boundaries are truthful. Not used by the shipping widget — that renders live provider data.
 public enum RibbonFixtures {
 
     static let warsaw = City(name: "Warsaw", tzid: "Europe/Warsaw")

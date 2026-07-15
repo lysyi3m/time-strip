@@ -12,18 +12,9 @@ private enum Metrics {
     static let rowHeight: CGFloat = 56
     static let rowSpacing: CGFloat = 10
     static let rowCornerRadius: CGFloat = 12
-    /// No gap is carved at day boundaries (`boundaryGap = 0`) — the ribbon is one continuous
-    /// bar (only the row's outer ends are rounded), so adjacent days meet seamlessly and the
-    /// date slot marks the change. The now-frame is a rounded box around the current column that
-    /// *breathes*: rather than hugging the ribbon, it stands off `nowFrameBreathe` pt above the
-    /// first row and below the last (Apple lets key indicators breathe). Nothing is carved
-    /// underneath, so its rounded corners sit cleanly over the solid ribbon.
-    static let boundaryGap: CGFloat = 0
-    /// The glass capsule overhangs the stack generously (not a hug) so it floats like a panel
-    /// laid over the grid — matching the designer reference.
+    /// How far the now-frame glass capsule overhangs the stack, top and bottom. It floats like a
+    /// panel laid over the grid rather than hugging it (Apple lets key indicators breathe).
     static let nowFrameBreathe: CGFloat = 14
-    static let nowFrameInsetX: CGFloat = 0
-    static let nowFrameInsetY: CGFloat = -nowFrameBreathe
     static let nowFrameCornerRadius: CGFloat = 20
 }
 
@@ -74,7 +65,7 @@ public struct RibbonView: View {
         ZStack(alignment: .topLeading) {
             VStack(spacing: Metrics.rowSpacing) {
                 ForEach(snapshot.rows.indices, id: \.self) { i in
-                    RowView(
+                    CityRow(
                         row: snapshot.rows[i],
                         now: snapshot.now,
                         is12h: is12h,
@@ -108,21 +99,19 @@ public struct RibbonView: View {
             // the ribbons beneath (does most of its work in light mode).
             .shadow(color: .black.opacity(0.12), radius: 7, x: 0, y: 2)
             .frame(
-                width: Metrics.slotWidth - 2 * Metrics.nowFrameInsetX,
-                height: rowsHeight - 2 * Metrics.nowFrameInsetY
+                width: Metrics.slotWidth,
+                height: rowsHeight + 2 * Metrics.nowFrameBreathe
             )
             .offset(
-                x: Metrics.railWidth
-                    + CGFloat(snapshot.nowColumnIndex) * Metrics.slotWidth
-                    + Metrics.nowFrameInsetX,
-                y: Metrics.nowFrameInsetY
+                x: Metrics.railWidth + CGFloat(snapshot.nowColumnIndex) * Metrics.slotWidth,
+                y: -Metrics.nowFrameBreathe
             )
             .allowsHitTesting(false)
     }
 }
 
-/// One city: left rail (name + zone tag) followed by its gradient-shaded ribbon.
-private struct RowView: View {
+/// One city: left rail (name + zone tag) followed by its gradient-shaded `RibbonRow`.
+private struct CityRow: View {
     let row: RowSnapshot
     let now: Date
     let is12h: Bool
@@ -193,11 +182,11 @@ private struct RibbonRow: View {
         .frame(width: width, height: Metrics.rowHeight)
     }
 
-    /// One shape per contiguous day-run; the union forms the row's shape with a carved gap at
-    /// each day boundary. Only the row's outer ends are rounded — the *first* run rounds its
-    /// leading corners, the *last* run its trailing corners; every internal boundary corner is
-    /// square. Pinned to the full ribbon width and leading-aligned so `.mask` (which centers by
-    /// default) doesn't shift the pills off their columns.
+    /// One shape per contiguous day-run; together they mask the row into a single continuous bar.
+    /// Only the row's outer ends are rounded — the *first* run rounds its leading corners, the
+    /// *last* run its trailing corners; every internal boundary corner is square, so adjacent days
+    /// meet flush. Pinned to the full ribbon width and leading-aligned so `.mask` (which centers by
+    /// default) doesn't shift the runs off their columns.
     private var runMask: some View {
         let r = Metrics.rowCornerRadius
         return ZStack(alignment: .leading) {
@@ -215,36 +204,33 @@ private struct RibbonRow: View {
         .frame(width: width, height: Metrics.rowHeight, alignment: .leading)
     }
 
-    /// Contiguous spans of columns belonging to the same local day. Boundaries fall *before*
-    /// a column whose `isDayStart` is set (excluding index 0, the row's outer edge). Each run
-    /// is inset by half the gap on any side that faces a boundary — the gap is carved from
-    /// the slots, so column centers (the numbers) never move (invariant §6.2). `roundLeading`/
-    /// `roundTrailing` mark the row's outer ends (the only rounded corners).
+    /// Contiguous spans of columns belonging to the same local day. A boundary falls *before* any
+    /// column whose `isDayStart` is set (excluding index 0, the row's outer edge). Runs abut with
+    /// no inserted geometry — each run spans exactly its slots, so column centers (the numbers)
+    /// never move (invariant §6.2). `roundLeading`/`roundTrailing` mark the row's outer ends (the
+    /// only rounded corners).
     private var dayRuns: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] {
         guard !slots.isEmpty else { return [] }  // `1...slots.count` would trap on an empty row
         let boundaries = Set(slots.indices.filter { $0 > 0 && slots[$0].isDayStart })
-        let half = Metrics.boundaryGap / 2
         var runs: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] = []
         var start = 0
         for end in 1...slots.count where end == slots.count || boundaries.contains(end) {
-            let leadingGap = start > 0 ? half : 0        // boundary on the left edge
-            let trailingGap = end < slots.count ? half : 0 // boundary on the right edge
-            let originX = CGFloat(start) * Metrics.slotWidth + leadingGap
-            let width = CGFloat(end - start) * Metrics.slotWidth - leadingGap - trailingGap
             runs.append((
-                start: start, originX: originX, width: width,
-                roundLeading: start == 0, roundTrailing: end == slots.count
+                start: start,
+                originX: CGFloat(start) * Metrics.slotWidth,
+                width: CGFloat(end - start) * Metrics.slotWidth,
+                roundLeading: start == 0,
+                roundTrailing: end == slots.count
             ))
             start = end
         }
         return runs
     }
 
-
     /// Barely-there vertical material shading so each ribbon reads as a tangible object, not a
-    /// flat swatch (designer note): a hairline top highlight (0.5pt, fading out by ~4% down) plus
-    /// a gentle top-to-bottom darkening (≈100% → 94% luminance). Almost invisible in isolation;
-    /// gives the surface subtle dimension. Applied before the run-mask so it clips to the pills.
+    /// flat swatch (designer note): a ~1px top highlight plus a gentle top-to-bottom darkening
+    /// (≈100% → 94% luminance). Almost invisible in isolation; gives the surface subtle dimension.
+    /// Applied before the run-mask so it clips to the row's shape.
     private var materialShading: some View {
         let h = Metrics.rowHeight
         return LinearGradient(

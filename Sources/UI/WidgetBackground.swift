@@ -43,7 +43,7 @@ public struct WidgetBackground: View {
         let radiusFraction: CGFloat = scheme == .dark ? 0.65 : 0.70
         let origin = scheme == .dark ? UnitPoint(x: 0.47, y: 0.42) : UnitPoint(x: 0.42, y: 0.44)
         return RadialGradient(
-            gradient: Gradient(colors: [tint.opacity(opacity), tint.opacity(0)]),
+            colors: [tint.opacity(opacity), tint.opacity(0)],
             center: origin,
             startRadius: 0,
             endRadius: max(1, width * radiusFraction)

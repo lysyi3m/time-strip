@@ -41,7 +41,7 @@ struct CityQuery: EntityStringQuery {
 
 /// The widget's Edit-Widget configuration: five fixed city slots (slot 1 = reference/home row)
 /// plus an optional manual zone-tag label per slot. Fixed slots rather than a dynamic array —
-/// the native editor renders a reorderable array poorly (spec §6/Phase 6).
+/// the native editor renders a reorderable array poorly (spec §6).
 struct TimeStripConfigurationIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Time Strip"
     static var description = IntentDescription("Choose up to five time zones to show as ribbons.")

@@ -16,7 +16,7 @@ struct RibbonEntry: TimelineEntry {
     }
 }
 
-// P6: an intent-driven provider. Rows come from the user's Edit-Widget selection, resolved by
+// An intent-driven provider. Rows come from the user's Edit-Widget selection, resolved by
 // `RibbonRows.resolve` (dedupe by zone; 0 → defaults, 1 → prompt, 2+ → chosen).
 struct RibbonTimelineProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> RibbonEntry {
