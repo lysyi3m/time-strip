@@ -58,18 +58,17 @@ struct TimeStripConfigurationIntent: WidgetConfigurationIntent {
     @Parameter(title: "Label 4") var label4: String?
     @Parameter(title: "Label 5") var label5: String?
 
-    /// The ordered, non-empty rows to render. Empty slots collapse (their rows disappear); an
-    /// entirely unconfigured widget falls back to a sensible default set so it's never blank.
-    var resolvedCities: [City] {
+    /// The ordered cities the user actually selected (empty slots collapse). No fallback — the
+    /// provider decides what to do with 0 (fresh widget → defaults) vs 1 (→ setup prompt) vs 2+.
+    var configuredCities: [City] {
         let slots: [(entity: CityEntity?, label: String?)] = [
             (city1, label1), (city2, label2), (city3, label3), (city4, label4), (city5, label5),
         ]
-        let cities = slots.compactMap { slot -> City? in
+        return slots.compactMap { slot -> City? in
             guard let entity = slot.entity else { return nil }
             let trimmed = slot.label?.trimmingCharacters(in: .whitespacesAndNewlines)
             let label = (trimmed?.isEmpty == false) ? trimmed : nil
             return City(name: entity.name, tzid: entity.id, label: label)
         }
-        return cities.isEmpty ? CityCatalog.defaults : cities
     }
 }

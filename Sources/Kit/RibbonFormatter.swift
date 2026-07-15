@@ -59,6 +59,21 @@ public enum RibbonFormatter {
         return abbreviation
     }
 
+    /// A spoken one-line summary of the widget for VoiceOver: each city and its current local
+    /// time at the now-column, e.g. "Los Angeles 11:00 PM, New York 2:00 AM, London 7:00 AM".
+    /// Uses the locale's hour format (12h/24h) and includes minutes so sub-hour zones read right.
+    public static func accessibilitySummary(for snapshot: RibbonSnapshot, locale: Locale) -> String {
+        let nowInstant = snapshot.columnInstants.indices.contains(snapshot.nowColumnIndex)
+            ? snapshot.columnInstants[snapshot.nowColumnIndex]
+            : snapshot.now
+        return snapshot.rows
+            .map { row in
+                let time = formatted(nowInstant, template: "jmm", timeZone: row.city.timeZone, locale: locale)
+                return "\(row.city.name) \(time)"
+            }
+            .joined(separator: ", ")
+    }
+
     // MARK: - Hour slot
 
     private static func hourLabel(for slot: Slot, locale: Locale, is12h: Bool) -> SlotLabel {

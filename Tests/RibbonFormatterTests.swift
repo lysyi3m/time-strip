@@ -38,6 +38,31 @@ final class RibbonFormatterTests: XCTestCase {
                 (f.pmSymbol ?? "").lowercased(with: locale))
     }
 
+    // MARK: - 0. Accessibility summary
+
+    func testAccessibilitySummary() {
+        let now = utc(2026, 7, 13, 12, 0, tzid: "UTC")
+        let snapshot = RibbonEngine.snapshot(now: now, cities: [
+            City(name: "Warsaw", tzid: "Europe/Warsaw"),
+            City(name: "New York", tzid: "America/New_York"),
+        ])
+        let summary = RibbonFormatter.accessibilitySummary(for: snapshot, locale: en)
+
+        // Independently format each row's now-column time in its own zone.
+        let nowInstant = snapshot.columnInstants[snapshot.nowColumnIndex]
+        func localTime(_ tzid: String) -> String {
+            let f = DateFormatter()
+            f.locale = en
+            f.timeZone = TimeZone(identifier: tzid)!
+            f.dateFormat = DateFormatter.dateFormat(fromTemplate: "jmm", options: 0, locale: en)
+            return f.string(from: nowInstant)
+        }
+        XCTAssertEqual(
+            summary,
+            "Warsaw \(localTime("Europe/Warsaw")), New York \(localTime("America/New_York"))"
+        )
+    }
+
     // MARK: - 1. Clock detection
 
     func testClockDetection() {

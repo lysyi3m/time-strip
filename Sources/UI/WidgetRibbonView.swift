@@ -35,5 +35,8 @@ public struct WidgetRibbonView: View {
                 .scaleEffect(scale)
                 .frame(width: proxy.size.width, height: proxy.size.height)  // center
         }
+        // Collapse the grid of per-cell text into one spoken summary of current times.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(RibbonFormatter.accessibilitySummary(for: snapshot, locale: locale))
     }
 }
