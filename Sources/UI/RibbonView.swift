@@ -28,21 +28,24 @@ private enum Metrics {
 }
 
 /// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6.
-/// Each row is a wall-clock band gradient (night/dawn/day/dusk by local hour, blended
-/// across columns); a day boundary carves a small gap between two rounded day-run pills
-/// (inset from the slots, so column centers hold). Static snapshot: no
+/// Each row is a wall-clock intensity gradient (night → day → dusk by local hour, blended across
+/// columns), masked into one continuous bar whose only rounded corners are the row's outer ends;
+/// a day boundary is marked by the date slot, not a gap. Static snapshot: no
 /// hover/press/scrub/animation.
+///
+/// 12h vs 24h is derived from `locale` (not passed in) so it always reflects the render-time
+/// locale / system clock preference rather than a value baked when the snapshot was made.
 public struct RibbonView: View {
     private let snapshot: RibbonSnapshot
-    private let is12h: Bool
     private let locale: Locale
     @Environment(\.colorScheme) private var scheme
 
-    public init(snapshot: RibbonSnapshot, is12h: Bool, locale: Locale = .current) {
+    public init(snapshot: RibbonSnapshot, locale: Locale = .current) {
         self.snapshot = snapshot
-        self.is12h = is12h
         self.locale = locale
     }
+
+    private var is12h: Bool { RibbonFormatter.uses12HourClock(locale: locale) }
 
     /// The ribbon's natural (unscaled) size for a snapshot, from the fixed layout metrics.
     /// Callers that must fit it into a container (e.g. a widget of unknown bounds) use this to
@@ -171,8 +174,9 @@ private struct RibbonRow: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // One continuous band gradient, masked into per-day rounded pills so a day
-            // boundary reads as a small gap between two rounded runs (not a hairline).
+            // One continuous band gradient, masked so only the row's outer ends are rounded.
+            // The mask partitions contiguous day runs without inserting any geometry or gap —
+            // a day boundary is conveyed by the date slot, and column centers never move.
             Rectangle()
                 .fill(bandGradient)
                 .frame(width: width, height: Metrics.rowHeight)
@@ -217,6 +221,7 @@ private struct RibbonRow: View {
     /// the slots, so column centers (the numbers) never move (invariant §6.2). `roundLeading`/
     /// `roundTrailing` mark the row's outer ends (the only rounded corners).
     private var dayRuns: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] {
+        guard !slots.isEmpty else { return [] }  // `1...slots.count` would trap on an empty row
         let boundaries = Set(slots.indices.filter { $0 > 0 && slots[$0].isDayStart })
         let half = Metrics.boundaryGap / 2
         var runs: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] = []

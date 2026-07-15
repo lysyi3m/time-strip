@@ -24,9 +24,10 @@ private struct WidgetPreview: View {
     private static let tileCornerRadius: CGFloat = 28                // OS-provided at runtime; approximated here
 
     var body: some View {
+        // The locale drives 12h vs 24h (en_US → 12h, en_GB → 24h), which is what these two
+        // previews demonstrate.
         WidgetRibbonView(
             snapshot: snapshot,
-            is12h: is12h,
             locale: is12h ? Locale(identifier: "en_US") : Locale(identifier: "en_GB")
         )
         .frame(width: Self.widgetSize.width, height: Self.widgetSize.height)

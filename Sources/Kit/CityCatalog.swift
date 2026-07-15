@@ -52,7 +52,7 @@ public enum CityCatalog {
                     ? $0.rank < $1.rank
                     : $0.city.name.localizedCaseInsensitiveCompare($1.city.name) == .orderedAscending
             }
-            .prefix(limit)
+            .prefix(max(0, limit))  // `prefix` traps on a negative count; clamp defensively
             .map(\.city)
     }
 

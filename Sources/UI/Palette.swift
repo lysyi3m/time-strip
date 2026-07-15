@@ -1,5 +1,4 @@
 import SwiftUI
-import TimeStripKit
 
 /// Continuous wall-clock color ramp + UI tokens. Iterating — placeholders, not frozen.
 ///

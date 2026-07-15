@@ -93,12 +93,27 @@ targets:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - Tests
+      - path: Tests
+        excludes:
+          - "UI/**"      # UI/ is its own target (it @needs TimeStripUI, not just Kit)
     dependencies:
       - target: TimeStripKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+
+  # ── Unit tests for the SwiftUI layer (public layout math). ─────────────────
+  TimeStripUITests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/UI
+    dependencies:
+      - target: TimeStripUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.uitests
         GENERATE_INFOPLIST_FILE: "YES"
 
 schemes:
@@ -115,3 +130,4 @@ schemes:
       config: Debug
       targets:
         - TimeStripTests
+        - TimeStripUITests

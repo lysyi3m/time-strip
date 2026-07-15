@@ -14,7 +14,6 @@ struct OnboardingView: View {
     @Environment(\.colorScheme) private var scheme
 
     private let snapshot = RibbonEngine.snapshot(now: Date(), cities: CityCatalog.defaults)
-    private var is12h: Bool { RibbonFormatter.uses12HourClock(locale: .current) }
     private var dark: Bool { scheme == .dark }
 
     var body: some View {
@@ -55,7 +54,7 @@ struct OnboardingView: View {
     /// `padding` reproduces WidgetKit's content margins — without it the ribbon scales to the full
     /// tile width and its rail labels touch (and clip at) the edges.
     private var hero: some View {
-        WidgetRibbonView(snapshot: snapshot, is12h: is12h)
+        WidgetRibbonView(snapshot: snapshot)
             .padding(16)
             .frame(height: 220)
             .frame(maxWidth: .infinity)

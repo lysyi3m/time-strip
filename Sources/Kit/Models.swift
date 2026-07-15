@@ -76,6 +76,9 @@ public struct WindowSpec: Sendable, Equatable {
     public let hoursAfter: Int          // default 5
 
     public init(hoursBefore: Int = 2, hoursAfter: Int = 5) {
+        // A window can't extend a negative number of hours; a negative count would later reach
+        // `0..<columnCount` and trap deep in the engine. Reject at the boundary instead.
+        precondition(hoursBefore >= 0 && hoursAfter >= 0, "WindowSpec hours must be non-negative")
         self.hoursBefore = hoursBefore
         self.hoursAfter = hoursAfter
     }

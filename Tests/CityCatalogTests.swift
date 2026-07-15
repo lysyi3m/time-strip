@@ -49,6 +49,12 @@ final class CityCatalogTests: XCTestCase {
         XCTAssertEqual(CityCatalog.search("   ").map(\.tzid), CityCatalog.suggested.map(\.tzid))
     }
 
+    func testSearchLimitIsClampedNotTrapping() {
+        // A negative limit must not trap `.prefix`; it clamps to an empty result.
+        XCTAssertTrue(CityCatalog.search("warsaw", limit: -5).isEmpty)
+        XCTAssertEqual(CityCatalog.search("warsaw", limit: 1).count, 1)
+    }
+
     func testSuggestedAndDefaultsResolve() {
         XCTAssertFalse(CityCatalog.suggested.isEmpty)
         XCTAssertEqual(CityCatalog.defaults.map(\.tzid), [

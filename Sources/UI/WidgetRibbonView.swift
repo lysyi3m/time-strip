@@ -13,12 +13,10 @@ import TimeStripKit
 /// than assuming specific bounds — it never clips, and centers within whatever space it has.
 public struct WidgetRibbonView: View {
     private let snapshot: RibbonSnapshot
-    private let is12h: Bool
     private let locale: Locale
 
-    public init(snapshot: RibbonSnapshot, is12h: Bool, locale: Locale = .current) {
+    public init(snapshot: RibbonSnapshot, locale: Locale = .current) {
         self.snapshot = snapshot
-        self.is12h = is12h
         self.locale = locale
     }
 
@@ -30,7 +28,7 @@ public struct WidgetRibbonView: View {
                 proxy.size.height / ideal.height,
                 1  // never upscale past the designed size
             )
-            RibbonView(snapshot: snapshot, is12h: is12h, locale: locale)
+            RibbonView(snapshot: snapshot, locale: locale)
                 .frame(width: ideal.width, height: ideal.height)
                 .scaleEffect(scale)
                 .frame(width: proxy.size.width, height: proxy.size.height)  // center
