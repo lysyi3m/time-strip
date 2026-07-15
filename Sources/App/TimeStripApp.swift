@@ -4,8 +4,9 @@ import SwiftUI
 struct TimeStripApp: App {
     var body: some Scene {
         Window("Time Strip", id: "main") {
-            Text("Time Strip")
-                .frame(minWidth: 360, minHeight: 200)
+            OnboardingView()
         }
+        // The window sizes to the onboarding content — there's nothing to resize into.
+        .windowResizability(.contentSize)
     }
 }
