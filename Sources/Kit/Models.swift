@@ -88,9 +88,13 @@ public struct WindowSpec: Sendable, Equatable {
     // keeps the strip readable in the compact `.systemMedium` tile (an 8-column window packs the
     // cells too tightly there). `now`'s fixed position is preserved.
     public init(hoursBefore: Int = 2, hoursAfter: Int = 3) {
-        // A window can't extend a negative number of hours; a negative count would later reach
-        // `0..<columnCount` and trap deep in the engine. Reject at the boundary instead.
-        precondition(hoursBefore >= 0 && hoursAfter >= 0, "WindowSpec hours must be non-negative")
+        // Reject invalid windows at the boundary: negatives would later reach `0..<columnCount`
+        // and trap, and enormous values would overflow `columnCount` or attempt a huge allocation.
+        // A day either side is far more than any layout needs.
+        precondition(
+            (0...24).contains(hoursBefore) && (0...24).contains(hoursAfter),
+            "WindowSpec hours must be within 0...24"
+        )
         self.hoursBefore = hoursBefore
         self.hoursAfter = hoursAfter
     }

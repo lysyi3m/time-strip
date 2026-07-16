@@ -49,4 +49,34 @@ final class RibbonLayoutTests: XCTestCase {
             }
         }
     }
+
+    /// Every derived dimension stays finite and non-negative even for degenerate inputs (`.zero`,
+    /// tiny/huge containers, 0/1 columns or rows), and the rail never exceeds the width — so the
+    /// responsive math can't produce negative frames or non-positive font sizes.
+    func testDegenerateInputsStayFiniteAndNonNegative() {
+        let sizes: [CGSize] = [
+            .zero,
+            CGSize(width: 10, height: 10),
+            CGSize(width: 40, height: 8),      // narrower than the rail's nominal minimum
+            CGSize(width: 2000, height: 2000),
+            CGSize(width: 329, height: 155),
+        ]
+        for size in sizes {
+            for cols in [0, 1, 6] {
+                for rows in [0, 1, 2, 7] {
+                    let l = RibbonLayout(size: size, columns: cols, rows: rows)
+                    let values = [
+                        l.railWidth, l.ribbonWidth, l.slotWidth, l.railGap, l.rowHeight, l.rowSpacing,
+                        l.contentHeight, l.rowCornerRadius, l.nowFrameBreathe, l.nowFrameCornerRadius,
+                        l.hourFont, l.meridiemFont, l.cityFont, l.zoneFont,
+                    ]
+                    for v in values {
+                        XCTAssertTrue(v.isFinite && v >= 0, "bad value \(v) at \(size) cols \(cols) rows \(rows)")
+                    }
+                    XCTAssertLessThanOrEqual(l.railWidth, max(size.width, 0) + 0.001)
+                    XCTAssertGreaterThanOrEqual(l.ribbonWidth, -0.001)
+                }
+            }
+        }
+    }
 }

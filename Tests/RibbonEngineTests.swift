@@ -216,4 +216,19 @@ final class RibbonEngineTests: XCTestCase {
         assertUniformStride(ref1.columnInstants)
         assertRowsMatchLocalHours(ref1)
     }
+
+    // MARK: - 7. Row trimming (per-family)
+
+    func testTrimmedToRows() {
+        let now = instant(2026, 7, 13, 12, 0, tzid: "UTC")
+        let snapshot = RibbonEngine.snapshot(now: now, cities: [warsaw, london, newYork, singapore])
+
+        XCTAssertEqual(snapshot.trimmedToRows(2).rows.count, 2)
+        XCTAssertEqual(snapshot.trimmedToRows(0).rows.count, 0)
+        XCTAssertEqual(snapshot.trimmedToRows(-3).rows.count, 0, "negative clamps to empty, no crash")
+        XCTAssertEqual(snapshot.trimmedToRows(99).rows.count, 4, "cap above the count returns all rows")
+        // The shared column grid is untouched by trimming.
+        XCTAssertEqual(snapshot.trimmedToRows(2).columnInstants, snapshot.columnInstants)
+        XCTAssertEqual(snapshot.trimmedToRows(2).nowColumnIndex, snapshot.nowColumnIndex)
+    }
 }

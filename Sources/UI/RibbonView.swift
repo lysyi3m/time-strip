@@ -16,8 +16,9 @@ struct RibbonLayout {
     static let gapRatio: CGFloat = 0.22
 
     /// Rail is a fixed share of the width (hard-capped), NOT "whatever's left after the name" — so
-    /// a long city name shrinks/truncates within the rail and never squeezes the cells.
-    var railWidth: CGFloat { (size.width * 0.24).clamped(60, 112) }
+    /// a long city name shrinks/truncates within the rail and never squeezes the cells. Also capped
+    /// at half the width so `ribbonWidth` can never go negative on an unexpectedly small container.
+    var railWidth: CGFloat { min((size.width * 0.24).clamped(60, 112), size.width * 0.5) }
     var ribbonWidth: CGFloat { size.width - railWidth }
     var slotWidth: CGFloat { ribbonWidth / CGFloat(max(columns, 1)) }
 
@@ -74,26 +75,33 @@ public struct RibbonView: View {
 
     public var body: some View {
         GeometryReader { proxy in
-            let layout = RibbonLayout(size: proxy.size, columns: columns, rows: rowCount)
-            VStack(spacing: layout.rowSpacing) {
-                ForEach(snapshot.rows.indices, id: \.self) { i in
-                    CityRow(
-                        row: snapshot.rows[i],
-                        now: snapshot.now,
-                        is12h: is12h,
-                        locale: locale,
-                        nowColumnIndex: snapshot.nowColumnIndex,
-                        layout: layout
-                    )
+            let size = proxy.size
+            // Guard degenerate geometry (a transient `.zero` from GeometryReader, a container too
+            // small to render, or an empty snapshot) so the layout never produces negative sizes /
+            // font points and the now-frame is never drawn over an empty grid.
+            if size.width.isFinite, size.height.isFinite, size.width >= 1, size.height >= 1,
+               columns > 0, rowCount > 0 {
+                let layout = RibbonLayout(size: size, columns: columns, rows: rowCount)
+                VStack(spacing: layout.rowSpacing) {
+                    ForEach(snapshot.rows.indices, id: \.self) { i in
+                        CityRow(
+                            row: snapshot.rows[i],
+                            now: snapshot.now,
+                            is12h: is12h,
+                            locale: locale,
+                            nowColumnIndex: snapshot.nowColumnIndex,
+                            layout: layout
+                        )
+                    }
                 }
+                // The now-frame is an overlay (it doesn't affect the row block's size), so the block
+                // stays exactly `contentHeight` and centers cleanly. It spans every row as one
+                // straight vertical line at the fixed nowColumnIndex, breathing above/below (§6.3).
+                .frame(width: size.width, height: layout.contentHeight)
+                .overlay(alignment: .topLeading) { nowFrame(layout) }
+                // Center the fixed-height block in the container (balanced breathing room).
+                .frame(width: size.width, height: size.height)
             }
-            // The now-frame is an overlay (it doesn't affect the row block's size), so the block
-            // stays exactly `contentHeight` and centers cleanly. It spans every row as one straight
-            // vertical line at the fixed nowColumnIndex, breathing above/below (invariant §6.3).
-            .frame(width: proxy.size.width, height: layout.contentHeight)
-            .overlay(alignment: .topLeading) { nowFrame(layout) }
-            // Center the fixed-height block in the container (balanced breathing room, not stretch).
-            .frame(width: proxy.size.width, height: proxy.size.height)
         }
     }
 
@@ -103,6 +111,9 @@ public struct RibbonView: View {
     /// above/below the row stack (invariant §6.3 — one vertical line).
     private func nowFrame(_ layout: RibbonLayout) -> some View {
         let r = layout.nowFrameCornerRadius
+        // Defensive: keep the marker on a valid column even if a malformed snapshot supplied an
+        // out-of-range nowColumnIndex (the engine always produces a valid one).
+        let nowColumn = min(max(snapshot.nowColumnIndex, 0), max(columns - 1, 0))
         return RoundedRectangle(cornerRadius: r, style: .continuous)
             .fill(Palette.nowGlassFill(scheme)
                 .shadow(.inner(color: Palette.nowGlassInnerShadow(scheme), radius: 1.5, x: 0, y: 1)))
@@ -116,7 +127,7 @@ public struct RibbonView: View {
                 height: layout.contentHeight + 2 * layout.nowFrameBreathe
             )
             .offset(
-                x: layout.railWidth + CGFloat(snapshot.nowColumnIndex) * layout.slotWidth,
+                x: layout.railWidth + CGFloat(nowColumn) * layout.slotWidth,
                 y: -layout.nowFrameBreathe
             )
             .allowsHitTesting(false)
