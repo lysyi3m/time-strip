@@ -64,7 +64,8 @@ public enum CityCatalog {
     public static let defaults: [City] = defaultTZIDs.compactMap { byID[$0] }
 
     private static let defaultTZIDs = [
-        "America/Los_Angeles", "America/New_York", "Europe/London", "Europe/Warsaw", "Asia/Singapore",
+        "America/Los_Angeles", "America/New_York", "Europe/London", "Europe/Warsaw",
+        "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo",
     ]
 
     private static let popularTZIDs = [

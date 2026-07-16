@@ -18,8 +18,6 @@ public enum RibbonRows {
     /// - **0 distinct** → fall back to `defaults` (a fresh widget still looks populated);
     /// - **1 distinct** → `setupNeeded` (a comparison needs at least two zones);
     /// - **2+ distinct** → those rows.
-    ///
-    /// Deduplication keeps the first slot's manual label for a repeated zone.
     public static func resolve(configured: [City], defaults: [City]) -> Resolution {
         var seen = Set<String>()
         let unique = configured.filter { seen.insert($0.tzid).inserted }

@@ -34,20 +34,13 @@ public enum RibbonFormatter {
         is12h: Bool
     ) -> SlotLabel {
         slot.isDayStart
-            ? dateLabel(for: slot, timeZone: timeZone, locale: locale)
+            ? dateLabel(for: slot, timeZone: timeZone, locale: locale, is12h: is12h)
             : hourLabel(for: slot, locale: locale, is12h: is12h)
     }
 
     /// Conventional abbreviation when one exists, else `UTC±N` (`:30`/`:45` supported).
-    /// A per-city manual override wins over both — but an empty/whitespace-only override
-    /// is treated as *unset* (falls through to the computed tag), so clearing the override
-    /// field in the config never leaves the row with a blank zone tag.
     /// Instant-based → DST-correct.
-    public static func zoneTag(for city: City, at instant: Date, override: String?) -> String {
-        if let override, !override.trimmingCharacters(in: .whitespaces).isEmpty {
-            return override
-        }
-
+    public static func zoneTag(for city: City, at instant: Date) -> String {
         let tz = city.timeZone
         let abbreviation = tz.abbreviation(for: instant) ?? ""
 
@@ -103,11 +96,15 @@ public enum RibbonFormatter {
 
     // MARK: - Date slot
 
-    private static func dateLabel(for slot: Slot, timeZone: TimeZone, locale: Locale) -> SlotLabel {
-        SlotLabel(
-            primary: formatted(slot.instant, template: "d", timeZone: timeZone, locale: locale),
-            secondary: formatted(slot.instant, template: "EEE", timeZone: timeZone, locale: locale)
-        )
+    private static func dateLabel(for slot: Slot, timeZone: TimeZone, locale: Locale, is12h: Bool) -> SlotLabel {
+        let date = formatted(slot.instant, template: "d", timeZone: timeZone, locale: locale)
+        let weekday = formatted(slot.instant, template: "EEE", timeZone: timeZone, locale: locale)
+        // In 24h, hour cells are single-line, so a date-over-weekday boundary already stands out.
+        // In 12h, hour cells are two-line (number over meridiem), making a date-over-weekday cell
+        // blend in — so lead with the weekday *word*, which is unmistakable among numeric cells.
+        return is12h
+            ? SlotLabel(primary: weekday, secondary: date)
+            : SlotLabel(primary: date, secondary: weekday)
     }
 
     private static func formatted(

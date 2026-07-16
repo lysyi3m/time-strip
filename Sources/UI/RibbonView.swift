@@ -1,27 +1,59 @@
 import SwiftUI
 import TimeStripKit
 
-/// Layout constants for `.systemExtraLarge`. `slotWidth` is the constant grid stride;
-/// numbers sit at fixed per-index centers regardless of day boundaries (spec §6.2/§6.5).
-private enum Metrics {
-    // Slightly narrower cells free rail width for a larger city name, while staying comfortably
-    // wider than tall. Content fills the `.systemExtraLarge` tile minus Apple's 16pt margin
-    // (≈726×354 → ≈700×320): rail 156 + 8×68 = 700 wide; 5×56 + 4×10 = 320 tall.
-    static let railWidth: CGFloat = 156
-    static let slotWidth: CGFloat = 68
-    static let rowHeight: CGFloat = 56
-    static let rowSpacing: CGFloat = 10
-    static let rowCornerRadius: CGFloat = 12
-    /// How far the now-frame glass capsule overhangs the stack, top and bottom. It floats like a
-    /// panel laid over the grid rather than hugging it (Apple lets key indicators breathe).
-    static let nowFrameBreathe: CGFloat = 14
-    static let nowFrameCornerRadius: CGFloat = 20
+/// Dimensions the ribbon derives from the container it must fill. The layout is **responsive**
+/// (fills the widget's content area edge-to-edge) rather than a fixed design scaled to fit — so it
+/// matches Apple's content margins and adapts across families (`.systemMedium` fits fewer rows
+/// than `.systemLarge`). Cells stay landscape: if the height would make a cell taller than ~its
+/// width, the rows are centered with breathing room instead of being stretched into portrait.
+struct RibbonLayout {
+    let size: CGSize
+    let columns: Int
+    let rows: Int
+
+    /// Inter-row gap as a fraction of the row height — a *ratio*, not fixed pixels, so gaps look
+    /// consistent across families even though the cells themselves are sized differently.
+    static let gapRatio: CGFloat = 0.22
+
+    /// Rail is a fixed share of the width (hard-capped), NOT "whatever's left after the name" — so
+    /// a long city name shrinks/truncates within the rail and never squeezes the cells.
+    var railWidth: CGFloat { (size.width * 0.24).clamped(60, 112) }
+    var ribbonWidth: CGFloat { size.width - railWidth }
+    var slotWidth: CGFloat { ribbonWidth / CGFloat(max(columns, 1)) }
+
+    /// A guaranteed gap between the rail text and the ribbon, so the city name never butts against
+    /// its cells (the name shrinks/truncates to leave this gap regardless of font size).
+    var railGap: CGFloat { (slotWidth * 0.26).clamped(8, 16) }
+
+    /// Rows + proportional gaps fill the height, with the cell capped at square (never taller than
+    /// its width → never portrait / stretched). When there are too few rows to fill, cells stay
+    /// square and the block is centered with balanced breathing room.
+    var rowHeight: CGFloat {
+        let denom = CGFloat(rows) + CGFloat(max(rows - 1, 0)) * Self.gapRatio
+        let fill = size.height / max(denom, 1)
+        return min(slotWidth, fill)
+    }
+    var rowSpacing: CGFloat { rowHeight * Self.gapRatio }
+    var contentHeight: CGFloat { CGFloat(rows) * rowHeight + CGFloat(max(rows - 1, 0)) * rowSpacing }
+
+    var rowCornerRadius: CGFloat { rowHeight * 0.24 }
+    var nowFrameBreathe: CGFloat { rowSpacing * 0.9 }
+    var nowFrameCornerRadius: CGFloat { rowCornerRadius + nowFrameBreathe * 0.6 }
+
+    var hourFont: CGFloat { rowHeight * 0.42 }
+    var meridiemFont: CGFloat { rowHeight * 0.26 }
+    var cityFont: CGFloat { min(rowHeight * 0.42, railWidth * 0.17) }
+    var zoneFont: CGFloat { cityFont * 0.82 }
 }
 
-/// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6.
-/// Each row is a wall-clock intensity gradient (night → day → dusk by local hour, blended across
-/// columns), masked into one continuous bar whose only rounded corners are the row's outer ends;
-/// a day boundary is marked by the date slot, not a gap. Static snapshot: no
+private extension CGFloat {
+    func clamped(_ lo: CGFloat, _ hi: CGFloat) -> CGFloat { Swift.min(Swift.max(self, lo), hi) }
+}
+
+/// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6, filling the
+/// container it's given. Each row is a wall-clock intensity gradient (night → day → dusk by local
+/// hour), masked into one continuous bar whose only rounded corners are the row's outer ends; a
+/// day boundary is marked by the date slot, not a gap. Static snapshot: no
 /// hover/press/scrub/animation.
 ///
 /// 12h vs 24h is derived from `locale` (not passed in) so it always reflects the render-time
@@ -37,74 +69,55 @@ public struct RibbonView: View {
     }
 
     private var is12h: Bool { RibbonFormatter.uses12HourClock(locale: locale) }
-
-    /// The ribbon's natural (unscaled) size for a snapshot, from the fixed layout metrics.
-    /// Callers that must fit it into a container (e.g. a widget of unknown bounds) use this to
-    /// compute a scale factor — Apple's guidance is to adapt to the container, since widget
-    /// sizes vary by device/platform and are only known at runtime (`displaySize`).
-    public static func idealSize(for snapshot: RibbonSnapshot) -> CGSize {
-        let cols = snapshot.columnInstants.count
-        let rows = snapshot.rows.count
-        return CGSize(
-            width: Metrics.railWidth + CGFloat(cols) * Metrics.slotWidth,
-            height: CGFloat(rows) * Metrics.rowHeight
-                + CGFloat(max(0, rows - 1)) * Metrics.rowSpacing
-        )
-    }
-
-    private var columnCount: Int { snapshot.columnInstants.count }
-    private var ribbonWidth: CGFloat { CGFloat(columnCount) * Metrics.slotWidth }
-    private var rowsHeight: CGFloat {
-        CGFloat(snapshot.rows.count) * Metrics.rowHeight
-            + CGFloat(max(0, snapshot.rows.count - 1)) * Metrics.rowSpacing
-    }
+    private var columns: Int { snapshot.columnInstants.count }
+    private var rowCount: Int { snapshot.rows.count }
 
     public var body: some View {
-        // The now-frame is drawn last, on top, spanning every row as one straight vertical
-        // line at the fixed nowColumnIndex (invariant §6.3).
-        ZStack(alignment: .topLeading) {
-            VStack(spacing: Metrics.rowSpacing) {
+        GeometryReader { proxy in
+            let layout = RibbonLayout(size: proxy.size, columns: columns, rows: rowCount)
+            VStack(spacing: layout.rowSpacing) {
                 ForEach(snapshot.rows.indices, id: \.self) { i in
                     CityRow(
                         row: snapshot.rows[i],
                         now: snapshot.now,
                         is12h: is12h,
                         locale: locale,
-                        nowColumnIndex: snapshot.nowColumnIndex
+                        nowColumnIndex: snapshot.nowColumnIndex,
+                        layout: layout
                     )
                 }
             }
-            nowFrame
+            // The now-frame is an overlay (it doesn't affect the row block's size), so the block
+            // stays exactly `contentHeight` and centers cleanly. It spans every row as one straight
+            // vertical line at the fixed nowColumnIndex, breathing above/below (invariant §6.3).
+            .frame(width: proxy.size.width, height: layout.contentHeight)
+            .overlay(alignment: .topLeading) { nowFrame(layout) }
+            // Center the fixed-height block in the container (balanced breathing room, not stretch).
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .frame(width: Metrics.railWidth + ribbonWidth, height: rowsHeight, alignment: .topLeading)
     }
 
     /// A slab of frosted glass laid over the current column — not a stroked outline. Read from
-    /// three light cues instead of a hard border (designer note): a faint translucent fill, a
-    /// 1px inner shadow for recessed depth, and a top-lit 1px rim highlight. Centered on the
-    /// fixed nowColumnIndex; breathes above/below the stack (invariant §6.3 — one vertical line).
-    private var nowFrame: some View {
-        let r = Metrics.nowFrameCornerRadius
+    /// three light cues instead of a hard border: a faint translucent fill, a 1px inner shadow for
+    /// recessed depth, and a top-lit rim highlight. Centered on the fixed nowColumnIndex; breathes
+    /// above/below the row stack (invariant §6.3 — one vertical line).
+    private func nowFrame(_ layout: RibbonLayout) -> some View {
+        let r = layout.nowFrameCornerRadius
         return RoundedRectangle(cornerRadius: r, style: .continuous)
             .fill(Palette.nowGlassFill(scheme)
                 .shadow(.inner(color: Palette.nowGlassInnerShadow(scheme), radius: 1.5, x: 0, y: 1)))
             .overlay(
-                // A crisp near-white rim tracing the whole capsule (brightest at the top). Unlike
-                // a top-only highlight it reads on every side, so the marker stays legible over
-                // bright daytime ribbons where a translucent fill alone would disappear.
                 RoundedRectangle(cornerRadius: r, style: .continuous)
                     .strokeBorder(Palette.nowGlassRim(scheme), lineWidth: 1.5)
             )
-            // Soft ambient shadow so the panel floats above the grid and its edge separates from
-            // the ribbons beneath (does most of its work in light mode).
             .shadow(color: .black.opacity(0.12), radius: 7, x: 0, y: 2)
             .frame(
-                width: Metrics.slotWidth,
-                height: rowsHeight + 2 * Metrics.nowFrameBreathe
+                width: layout.slotWidth,
+                height: layout.contentHeight + 2 * layout.nowFrameBreathe
             )
             .offset(
-                x: Metrics.railWidth + CGFloat(snapshot.nowColumnIndex) * Metrics.slotWidth,
-                y: -Metrics.nowFrameBreathe
+                x: layout.railWidth + CGFloat(snapshot.nowColumnIndex) * layout.slotWidth,
+                y: -layout.nowFrameBreathe
             )
             .allowsHitTesting(false)
     }
@@ -117,26 +130,27 @@ private struct CityRow: View {
     let is12h: Bool
     let locale: Locale
     let nowColumnIndex: Int
+    let layout: RibbonLayout
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: layout.rowHeight * 0.05) {
                 Text(row.city.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: layout.cityFont, weight: .medium))
                     .tracking(-0.1)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.7)
                     .truncationMode(.tail)
                     .foregroundStyle(Palette.railLabel(scheme))
-                Text(RibbonFormatter.zoneTag(for: row.city, at: now, override: row.city.label))
-                    .font(.system(size: 12, weight: .regular))
-                    .tracking(0.2)
+                Text(RibbonFormatter.zoneTag(for: row.city, at: now))
+                    .font(.system(size: layout.zoneFont, weight: .regular))
+                    .tracking(0.1)
                     .foregroundStyle(Palette.railLabel(scheme).opacity(0.35))
             }
-            .frame(width: Metrics.railWidth, alignment: .leading)
-            // Whisper-faint fade so the rail feels seated in the material rather than printed on
-            // top — brightest at the left edge, gone before it meets the ribbon.
+            .padding(.trailing, layout.railGap)   // guaranteed gap before the ribbon
+            .frame(width: layout.railWidth, height: layout.rowHeight, alignment: .leading)
+            // Whisper-faint fade so the rail feels seated in the material rather than printed on top.
             .background(
                 LinearGradient(
                     colors: [Palette.railLabel(scheme).opacity(0.03), .clear],
@@ -145,8 +159,9 @@ private struct CityRow: View {
                 )
             )
 
-            RibbonRow(row: row, is12h: is12h, locale: locale, nowColumnIndex: nowColumnIndex)
+            RibbonRow(row: row, is12h: is12h, locale: locale, nowColumnIndex: nowColumnIndex, layout: layout)
         }
+        .frame(height: layout.rowHeight)
     }
 }
 
@@ -156,10 +171,11 @@ private struct RibbonRow: View {
     let is12h: Bool
     let locale: Locale
     let nowColumnIndex: Int
+    let layout: RibbonLayout
     @Environment(\.colorScheme) private var scheme
 
     private var slots: [Slot] { row.slots }
-    private var width: CGFloat { CGFloat(slots.count) * Metrics.slotWidth }
+    private var width: CGFloat { layout.ribbonWidth }
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -168,27 +184,26 @@ private struct RibbonRow: View {
             // a day boundary is conveyed by the date slot, and column centers never move.
             Rectangle()
                 .fill(bandGradient)
-                .frame(width: width, height: Metrics.rowHeight)
+                .frame(width: width, height: layout.rowHeight)
                 .overlay(materialShading)
                 .mask(runMask)
-                // Ambient (not drop) shadow — near-zero offset, soft, ~3% — so each ribbon lifts
-                // just off the material rather than sitting flat on it.
+                // Ambient (not drop) shadow so each ribbon lifts just off the material.
                 .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 1)
 
             ForEach(slots.indices, id: \.self) { i in
                 slotContent(i)
             }
         }
-        .frame(width: width, height: Metrics.rowHeight)
+        .frame(width: width, height: layout.rowHeight)
     }
 
     /// One shape per contiguous day-run; together they mask the row into a single continuous bar.
     /// Only the row's outer ends are rounded — the *first* run rounds its leading corners, the
-    /// *last* run its trailing corners; every internal boundary corner is square, so adjacent days
-    /// meet flush. Pinned to the full ribbon width and leading-aligned so `.mask` (which centers by
-    /// default) doesn't shift the runs off their columns.
+    /// *last* run its trailing corners; every internal boundary corner is square. Pinned to the
+    /// full ribbon width and leading-aligned so `.mask` (which centers by default) doesn't shift
+    /// the runs off their columns.
     private var runMask: some View {
-        let r = Metrics.rowCornerRadius
+        let r = layout.rowCornerRadius
         return ZStack(alignment: .leading) {
             ForEach(dayRuns, id: \.start) { run in
                 UnevenRoundedRectangle(
@@ -197,18 +212,17 @@ private struct RibbonRow: View {
                     bottomTrailingRadius: run.roundTrailing ? r : 0,
                     topTrailingRadius: run.roundTrailing ? r : 0
                 )
-                .frame(width: run.width, height: Metrics.rowHeight)
+                .frame(width: run.width, height: layout.rowHeight)
                 .offset(x: run.originX, y: 0)
             }
         }
-        .frame(width: width, height: Metrics.rowHeight, alignment: .leading)
+        .frame(width: width, height: layout.rowHeight, alignment: .leading)
     }
 
     /// Contiguous spans of columns belonging to the same local day. A boundary falls *before* any
     /// column whose `isDayStart` is set (excluding index 0, the row's outer edge). Runs abut with
     /// no inserted geometry — each run spans exactly its slots, so column centers (the numbers)
-    /// never move (invariant §6.2). `roundLeading`/`roundTrailing` mark the row's outer ends (the
-    /// only rounded corners).
+    /// never move (invariant §6.2). `roundLeading`/`roundTrailing` mark the row's outer ends.
     private var dayRuns: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] {
         guard !slots.isEmpty else { return [] }  // `1...slots.count` would trap on an empty row
         let boundaries = Set(slots.indices.filter { $0 > 0 && slots[$0].isDayStart })
@@ -217,8 +231,8 @@ private struct RibbonRow: View {
         for end in 1...slots.count where end == slots.count || boundaries.contains(end) {
             runs.append((
                 start: start,
-                originX: CGFloat(start) * Metrics.slotWidth,
-                width: CGFloat(end - start) * Metrics.slotWidth,
+                originX: CGFloat(start) * layout.slotWidth,
+                width: CGFloat(end - start) * layout.slotWidth,
                 roundLeading: start == 0,
                 roundTrailing: end == slots.count
             ))
@@ -227,17 +241,17 @@ private struct RibbonRow: View {
         return runs
     }
 
-    /// Barely-there vertical material shading so each ribbon reads as a tangible object, not a
-    /// flat swatch (designer note): a ~1px top highlight plus a gentle top-to-bottom darkening
-    /// (≈100% → 94% luminance). Almost invisible in isolation; gives the surface subtle dimension.
-    /// Applied before the run-mask so it clips to the row's shape.
+    /// Barely-there vertical material shading so each ribbon reads as a tangible object, not a flat
+    /// swatch: a ~1px top highlight plus a gentle top-to-bottom darkening (≈100% → 94% luminance).
+    /// Almost invisible in isolation; gives the surface subtle dimension. Applied before the
+    /// run-mask so it clips to the row's shape.
     private var materialShading: some View {
-        let h = Metrics.rowHeight
+        let edge = 1 / max(layout.rowHeight, 1)
         return LinearGradient(
             stops: [
                 Gradient.Stop(color: .white.opacity(0.18), location: 0),
-                Gradient.Stop(color: .white.opacity(0), location: 1 / h),   // crisp ~1px top edge
-                Gradient.Stop(color: .black.opacity(0), location: 1 / h),
+                Gradient.Stop(color: .white.opacity(0), location: edge),
+                Gradient.Stop(color: .black.opacity(0), location: edge),
                 Gradient.Stop(color: .black.opacity(0.06), location: 1),
             ],
             startPoint: .top,
@@ -245,8 +259,8 @@ private struct RibbonRow: View {
         )
     }
 
-    /// Local clock hour as a continuous value (sub-hour zones carry their :30/:45), so the
-    /// color ramp differs slightly per column and the row reads as one smooth gradient.
+    /// Local clock hour as a continuous value (sub-hour zones carry their :30/:45), so the color
+    /// ramp differs slightly per column and the row reads as one smooth gradient.
     private func clockHour(_ slot: Slot) -> Double { Double(slot.hour) + Double(slot.minute) / 60 }
 
     /// A gradient with a stop at each column center colored by that column's position on the
@@ -275,25 +289,24 @@ private struct RibbonRow: View {
         )
         let numberColor = Palette.number(forHour: clockHour(slot), scheme)
         let isNow = i == nowColumnIndex
-        // Per-cell layout: a bare number centers vertically; a cell with a secondary
-        // (meridiem or weekday) is a two-line group, centered. Tight spacing keeps the
-        // label hugging the number (review: "tighter date layout"). The now-column number is
-        // bolded so the current hour reads regardless of the ribbon behind it — the glass
-        // marker alone can vanish over bright daytime cells.
-        VStack(spacing: 0) {
+        // Per-cell layout: a bare number centers vertically; a cell with a secondary (meridiem or
+        // weekday) is a two-line group, centered. The now-column number is bolded so the current
+        // hour reads regardless of the ribbon behind it — the glass marker alone can vanish over
+        // bright daytime cells.
+        // Slight negative spacing pulls the number and its meridiem/weekday a touch closer.
+        VStack(spacing: -layout.rowHeight * 0.05) {
             Text(label.primary)
-                .font(.system(size: 16, weight: isNow ? .bold : .regular))
-                .tracking(0)
+                .font(.system(size: layout.hourFont, weight: isNow ? .bold : .regular))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)  // shrink to fit rather than truncate if cramped
             if !label.secondary.isEmpty {
                 Text(label.secondary)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(0.2)
+                    .font(.system(size: layout.meridiemFont, weight: .regular))
+                    .tracking(0.1)
             }
         }
         .foregroundStyle(numberColor)
-        .frame(width: Metrics.slotWidth, height: Metrics.rowHeight)
-        .offset(x: CGFloat(i) * Metrics.slotWidth, y: 0)
+        .frame(width: layout.slotWidth, height: layout.rowHeight)
+        .offset(x: CGFloat(i) * layout.slotWidth, y: 0)
     }
 }

@@ -1,35 +1,52 @@
 import XCTest
-import TimeStripKit
-import TimeStripUI
+@testable import TimeStripUI
 
-/// P8: layout guarantees of the ribbon view that the Kit-only tests can't reach.
+/// P8/redesign: invariants of the responsive `RibbonLayout` that keep the ribbon correct across
+/// widget families (Medium — wide/short, Large — ~square) and row counts.
 final class RibbonLayoutTests: XCTestCase {
 
-    /// Shared fixtures, one per row count 2…5.
-    private let byRowCount: [Int: RibbonSnapshot] = [
-        2: RibbonFixtures.twoRows,
-        3: RibbonFixtures.threeRows,
-        4: RibbonFixtures.fourRows,
-        5: RibbonFixtures.fiveRows,
+    private let tiles: [CGSize] = [
+        CGSize(width: 300, height: 120),   // ≈ .systemMedium content area
+        CGSize(width: 300, height: 320),   // ≈ .systemLarge content area
     ]
+    private let rowCounts = [2, 4, 6, 7]
 
-    /// Width comes from the fixed 8-column grid (rail + columns), so it must not vary with the
-    /// number of rows.
-    func testIdealWidthIsIndependentOfRowCount() {
-        let widths = (2...5).map { RibbonView.idealSize(for: byRowCount[$0]!).width }
-        XCTAssertEqual(Set(widths).count, 1, "width must depend only on the column grid: \(widths)")
-        XCTAssertGreaterThan(widths[0], 0)
+    /// The rail plus the column grid exactly span the width — no leftover horizontal margin (this
+    /// is what makes the content align to the tile edges like Apple's widgets).
+    func testFillsWidthExactly() {
+        for tile in tiles {
+            let layout = RibbonLayout(size: tile, columns: 6, rows: 4)
+            XCTAssertEqual(
+                layout.railWidth + 6 * layout.slotWidth, tile.width, accuracy: 0.001,
+                "rail + columns should span the full width at \(tile)"
+            )
+        }
     }
 
-    /// Each added row adds one row height plus one inter-row gap — a constant — so ideal height is
-    /// affine in the row count. Verified from the data itself (no hardcoded metrics that can drift).
-    func testIdealHeightGrowsLinearlyWithRows() {
-        let heights = (2...5).map { RibbonView.idealSize(for: byRowCount[$0]!).height }
-        let deltas = zip(heights.dropFirst(), heights).map { $0 - $1 }
-        XCTAssertTrue(
-            deltas.allSatisfy { abs($0 - deltas[0]) < 0.0001 },
-            "height should increase by a constant per row: \(heights)"
-        )
-        XCTAssertGreaterThan(heights[0], 0)
+    /// Cells never go portrait — height is capped at the cell width — so the "vertically stretched"
+    /// look can't happen regardless of family or row count.
+    func testCellsNeverGoPortrait() {
+        for tile in tiles {
+            for rows in rowCounts {
+                let layout = RibbonLayout(size: tile, columns: 6, rows: rows)
+                XCTAssertLessThanOrEqual(
+                    layout.rowHeight, layout.slotWidth + 0.001,
+                    "cell went portrait at \(tile) with \(rows) rows"
+                )
+            }
+        }
+    }
+
+    /// The stacked rows always fit within the container height (centered if shorter).
+    func testContentFitsWithinHeight() {
+        for tile in tiles {
+            for rows in rowCounts {
+                let layout = RibbonLayout(size: tile, columns: 6, rows: rows)
+                XCTAssertLessThanOrEqual(
+                    layout.contentHeight, tile.height + 0.001,
+                    "content overflowed height at \(tile) with \(rows) rows"
+                )
+            }
+        }
     }
 }

@@ -2,21 +2,18 @@ import Foundation
 
 /// A time zone the user can place on a row, labeled by a representative city. Sourced from the
 /// OS zone list (`CityCatalog`), so `tzid` is an IANA identifier and `name` its friendly city
-/// name. `label` is an optional per-row manual override for the zone tag (§3), set by the
-/// widget configuration; the catalog leaves it `nil`.
+/// name.
 public struct City: Identifiable, Codable, Hashable, Sendable {
     public let name: String
     public let tzid: String        // IANA identifier, e.g. "Europe/Warsaw"
-    public let label: String?      // manual zone-tag override, or nil to auto-derive
 
     /// Stable identity for pickers/entities — the IANA id is already unique and stable.
     public var id: String { tzid }
     public var timeZone: TimeZone { TimeZone(identifier: tzid) ?? .gmt }
 
-    public init(name: String, tzid: String, label: String? = nil) {
+    public init(name: String, tzid: String) {
         self.name = name
         self.tzid = tzid
-        self.label = label
     }
 }
 
@@ -69,13 +66,28 @@ public struct RibbonSnapshot: Hashable, Sendable {
         self.nowColumnIndex = nowColumnIndex
         self.rows = rows
     }
+
+    /// The same snapshot showing at most `maxRows` rows (the shared column grid is unchanged) —
+    /// used to fit one baked snapshot into a family that renders fewer rows than were configured.
+    public func trimmedToRows(_ maxRows: Int) -> RibbonSnapshot {
+        guard maxRows < rows.count else { return self }
+        return RibbonSnapshot(
+            now: now,
+            columnInstants: columnInstants,
+            nowColumnIndex: nowColumnIndex,
+            rows: Array(rows.prefix(max(0, maxRows)))
+        )
+    }
 }
 
 public struct WindowSpec: Sendable, Equatable {
-    public let hoursBefore: Int         // default 2
-    public let hoursAfter: Int          // default 5
+    public let hoursBefore: Int         // default 2 → `now` sits at column index 2
+    public let hoursAfter: Int          // default 3
 
-    public init(hoursBefore: Int = 2, hoursAfter: Int = 5) {
+    // Default −2h/+3h = 6 columns: `now` stays at column index 2, and the trimmed future window
+    // keeps the strip readable in the compact `.systemMedium` tile (an 8-column window packs the
+    // cells too tightly there). `now`'s fixed position is preserved.
+    public init(hoursBefore: Int = 2, hoursAfter: Int = 3) {
         // A window can't extend a negative number of hours; a negative count would later reach
         // `0..<columnCount` and trap deep in the engine. Reject at the boundary instead.
         precondition(hoursBefore >= 0 && hoursAfter >= 0, "WindowSpec hours must be non-negative")
@@ -83,5 +95,5 @@ public struct WindowSpec: Sendable, Equatable {
         self.hoursAfter = hoursAfter
     }
 
-    public var columnCount: Int { hoursBefore + hoursAfter + 1 }   // default 8
+    public var columnCount: Int { hoursBefore + hoursAfter + 1 }   // default 6
 }

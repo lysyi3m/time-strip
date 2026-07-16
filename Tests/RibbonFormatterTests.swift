@@ -133,10 +133,17 @@ final class RibbonFormatterTests: XCTestCase {
             return f.string(from: instant)
         }
 
+        // 24h: date leads, weekday below (already distinct — hour cells are single-line).
         let enLabel = RibbonFormatter.slotLabel(for: s, timeZone: tz, locale: en, is12h: false)
         XCTAssertEqual(enLabel.primary, expected("d", en))
         XCTAssertEqual(enLabel.secondary, expected("EEE", en))
         XCTAssertEqual(enLabel.primary, "16")
+
+        // 12h: weekday leads, date below — so the boundary stands out among number/meridiem cells.
+        let en12 = RibbonFormatter.slotLabel(for: s, timeZone: tz, locale: en, is12h: true)
+        XCTAssertEqual(en12.primary, expected("EEE", en))
+        XCTAssertEqual(en12.secondary, expected("d", en))
+        XCTAssertEqual(en12.secondary, "16")
 
         // Weekday localizes with the locale (e.g. Polish "czw").
         let plLabel = RibbonFormatter.slotLabel(for: s, timeZone: tz, locale: pl, is12h: false)
@@ -152,36 +159,13 @@ final class RibbonFormatterTests: XCTestCase {
         let warsaw = city("Europe/Warsaw")
         let summer = utc(2026, 7, 1, 12, 0, tzid: "UTC")
         let winter = utc(2026, 1, 1, 12, 0, tzid: "UTC")
-        XCTAssertEqual(RibbonFormatter.zoneTag(for: warsaw, at: summer, override: nil), "UTC+2")
-        XCTAssertEqual(RibbonFormatter.zoneTag(for: warsaw, at: winter, override: nil), "UTC+1")
+        XCTAssertEqual(RibbonFormatter.zoneTag(for: warsaw, at: summer), "UTC+2")
+        XCTAssertEqual(RibbonFormatter.zoneTag(for: warsaw, at: winter), "UTC+1")
     }
 
     func testZoneTagUTCOffsetFallback() {
         let instant = utc(2026, 7, 1, 12, 0, tzid: "UTC")
-        XCTAssertEqual(
-            RibbonFormatter.zoneTag(for: city("Asia/Singapore"), at: instant, override: nil),
-            "UTC+8"
-        )
-        XCTAssertEqual(
-            RibbonFormatter.zoneTag(for: city("Asia/Kolkata"), at: instant, override: nil),
-            "UTC+5:30"
-        )
-    }
-
-    func testZoneTagOverrideWins() {
-        let warsaw = city("Europe/Warsaw")
-        let summer = utc(2026, 7, 1, 12, 0, tzid: "UTC")
-        XCTAssertEqual(
-            RibbonFormatter.zoneTag(for: warsaw, at: summer, override: "Home"),
-            "Home"
-        )
-    }
-
-    func testZoneTagEmptyOverrideFallsThrough() {
-        // Empty / whitespace-only override is treated as unset → computed tag, never blank.
-        let singapore = city("Asia/Singapore")
-        let instant = utc(2026, 7, 1, 12, 0, tzid: "UTC")
-        XCTAssertEqual(RibbonFormatter.zoneTag(for: singapore, at: instant, override: ""), "UTC+8")
-        XCTAssertEqual(RibbonFormatter.zoneTag(for: singapore, at: instant, override: "   "), "UTC+8")
+        XCTAssertEqual(RibbonFormatter.zoneTag(for: city("Asia/Singapore"), at: instant), "UTC+8")
+        XCTAssertEqual(RibbonFormatter.zoneTag(for: city("Asia/Kolkata"), at: instant), "UTC+5:30")
     }
 }

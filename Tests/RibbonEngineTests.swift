@@ -72,8 +72,9 @@ final class RibbonEngineTests: XCTestCase {
             now: now, cities: [warsaw, london, newYork, singapore]
         )
 
-        XCTAssertEqual(snapshot.columnInstants.count, 8)
-        XCTAssertEqual(snapshot.nowColumnIndex, 2)
+        // Derived from the default window, not hardcoded, so it can't drift if the window changes.
+        XCTAssertEqual(snapshot.columnInstants.count, WindowSpec().columnCount)
+        XCTAssertEqual(snapshot.nowColumnIndex, WindowSpec().hoursBefore)
         assertUniformStride(snapshot.columnInstants)
         assertRowsMatchLocalHours(snapshot)
 

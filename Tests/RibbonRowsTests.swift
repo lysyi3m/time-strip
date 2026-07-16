@@ -34,13 +34,11 @@ final class RibbonRowsTests: XCTestCase {
         XCTAssertEqual(result, .ribbon([la, ny]))
     }
 
-    func testFirstSlotLabelWinsForARepeatedZone() {
-        let first = City(name: "Los Angeles", tzid: "America/Los_Angeles", label: "Home")
-        let second = City(name: "Los Angeles", tzid: "America/Los_Angeles", label: "Office")
-        guard case let .ribbon(rows) = RibbonRows.resolve(configured: [first, second, ny], defaults: defaults) else {
+    func testDeduplicationKeepsFirstOccurrenceOrder() {
+        let dupLA = City(name: "Los Angeles", tzid: "America/Los_Angeles")
+        guard case let .ribbon(rows) = RibbonRows.resolve(configured: [la, ny, dupLA], defaults: defaults) else {
             return XCTFail("expected a ribbon")
         }
         XCTAssertEqual(rows.map(\.tzid), ["America/Los_Angeles", "America/New_York"])
-        XCTAssertEqual(rows.first?.label, "Home", "first occurrence's label should win")
     }
 }

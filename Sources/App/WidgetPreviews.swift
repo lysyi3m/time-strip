@@ -3,34 +3,36 @@ import TimeStripKit
 import TimeStripUI
 
 // macOS cannot preview a WidgetKit widget in the canvas (verified — see the widget target).
-// So we reproduce the widget faithfully from the app target: the SAME `WidgetRibbonView` the
-// real widget renders, inside a representative `.systemExtraLarge` tile with the widget
-// background and rounded corners, on a contrasting backdrop.
+// So we reproduce the widget faithfully from the app target: the SAME `WidgetRibbonView` the real
+// widget renders, inset by WidgetKit's content margins inside a family-sized tile with the widget
+// background — i.e. exactly what gets placed. `WidgetRibbonView` is responsive (fills whatever
+// bounds it's given), so it fills the content area edge-to-edge just like the real widget.
 //
-// NOTE on size: Apple does not publish a fixed macOS widget point size — `.systemExtraLarge`
-// varies by device and can be portrait or landscape; the real size arrives at runtime via
-// `TimelineProviderContext.displaySize`. `widgetSize` below is the spec's ~726×354 pt
-// approximation, only for the preview tile. Because `WidgetRibbonView` scales to fit its
-// bounds, the content stays correct (never clips) whatever the real size turns out to be.
+// NOTE on size: Apple doesn't publish fixed macOS widget point sizes (the real size arrives at
+// runtime), but `.systemMedium` is a wide, short tile and `.systemLarge` a ~square one; the tiles
+// below are representative.
 //
 // Appearance follows the canvas "Color Scheme" toggle — no forced appearance here.
 
 private struct WidgetPreview: View {
     let snapshot: RibbonSnapshot
     let is12h: Bool
+    let tileSize: CGSize
+    let maxRows: Int
     @Environment(\.colorScheme) private var scheme
 
-    private static let widgetSize = CGSize(width: 726, height: 354)  // ≈ macOS extra-large (spec §3)
-    private static let tileCornerRadius: CGFloat = 28                // OS-provided at runtime; approximated here
+    private static let contentMargin: CGFloat = 16   // ≈ WidgetKit's default macOS margins
+    private static let tileCornerRadius: CGFloat = 20 // OS-provided at runtime; approximated
 
     var body: some View {
-        // The locale drives 12h vs 24h (en_US → 12h, en_GB → 24h), which is what these two
-        // previews demonstrate.
+        // The locale drives 12h vs 24h (en_US → 12h, en_GB → 24h).
         WidgetRibbonView(
             snapshot: snapshot,
-            locale: is12h ? Locale(identifier: "en_US") : Locale(identifier: "en_GB")
+            locale: is12h ? Locale(identifier: "en_US") : Locale(identifier: "en_GB"),
+            maxRows: maxRows
         )
-        .frame(width: Self.widgetSize.width, height: Self.widgetSize.height)
+        .padding(Self.contentMargin)
+        .frame(width: tileSize.width, height: tileSize.height)
         .background(WidgetBackground(scheme: scheme))
         .clipShape(RoundedRectangle(cornerRadius: Self.tileCornerRadius, style: .continuous))
         .padding(40)
@@ -38,10 +40,21 @@ private struct WidgetPreview: View {
     }
 }
 
-#Preview("Widget · 24h") {
-    WidgetPreview(snapshot: RibbonFixtures.fiveRows, is12h: false)
+private let mediumTile = CGSize(width: 329, height: 155)  // ≈ macOS .systemMedium
+private let largeTile = CGSize(width: 329, height: 345)   // ≈ macOS .systemLarge
+
+#Preview("Medium · 24h") {
+    WidgetPreview(snapshot: RibbonFixtures.fourRows, is12h: false, tileSize: mediumTile, maxRows: 4)
 }
 
-#Preview("Widget · 12h") {
-    WidgetPreview(snapshot: RibbonFixtures.fiveRows, is12h: true)
+#Preview("Medium · 12h") {
+    WidgetPreview(snapshot: RibbonFixtures.fourRows, is12h: true, tileSize: mediumTile, maxRows: 4)
+}
+
+#Preview("Large · 24h") {
+    WidgetPreview(snapshot: RibbonFixtures.sevenRows, is12h: false, tileSize: largeTile, maxRows: 7)
+}
+
+#Preview("Large · 12h") {
+    WidgetPreview(snapshot: RibbonFixtures.sevenRows, is12h: true, tileSize: largeTile, maxRows: 7)
 }

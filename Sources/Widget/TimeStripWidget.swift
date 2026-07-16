@@ -59,6 +59,12 @@ struct TimeStripWidgetEntryView: View {
     // The render-time locale WidgetKit provides — the ribbon derives 12h/24h from it, so a
     // system region / clock-format change is reflected without waiting for a fresh timeline.
     @Environment(\.locale) private var locale
+    // The family the widget was placed at — determines how many rows fit.
+    @Environment(\.widgetFamily) private var family
+
+    /// Rows the current family renders: the tall `.systemLarge` fits more cities than the short
+    /// `.systemMedium`. One snapshot is baked with all configured cities and trimmed to fit.
+    private var maxRows: Int { family == .systemLarge ? 7 : 4 }
 
     var body: some View {
         content
@@ -71,7 +77,7 @@ struct TimeStripWidgetEntryView: View {
     private var content: some View {
         switch entry.content {
         case let .ribbon(snapshot):
-            WidgetRibbonView(snapshot: snapshot, locale: locale)
+            WidgetRibbonView(snapshot: snapshot, locale: locale, maxRows: maxRows)
         case .setupNeeded:
             WidgetPromptView()
         }
@@ -91,14 +97,14 @@ struct TimeStripWidget: Widget {
         }
         .configurationDisplayName("Time Strip")
         .description("Time zones as day/night ribbons.")
-        .supportedFamilies([.systemExtraLarge])
+        .supportedFamilies([.systemMedium, .systemLarge])
         // Keep WidgetKit's standard content margins (~16pt, HIG): the content is sized to fit
         // within them and scales to fit, so it no longer needs to claim the full bounds.
     }
 }
 
 // NOTE: the widget itself CANNOT be previewed in Xcode's canvas on macOS. Verified with the
-// modern `#Preview("…", as: .systemExtraLarge)` macro (Xcode 17F113 / macOS 26.5): the canvas
+// modern `#Preview("…", as: .systemMedium)` macro (Xcode 17F113 / macOS 26.5): the canvas
 // fails with "This platform does not support previewing widgets — No plugin is registered to
 // launch the process type widgetExtension." It's the widgetExtension process type macOS won't
 // launch for previews, so no API avoids it. Preview the widget's content view instead —

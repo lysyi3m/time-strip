@@ -58,7 +58,8 @@ final class CityCatalogTests: XCTestCase {
     func testSuggestedAndDefaultsResolve() {
         XCTAssertFalse(CityCatalog.suggested.isEmpty)
         XCTAssertEqual(CityCatalog.defaults.map(\.tzid), [
-            "America/Los_Angeles", "America/New_York", "Europe/London", "Europe/Warsaw", "Asia/Singapore",
+            "America/Los_Angeles", "America/New_York", "Europe/London", "Europe/Warsaw",
+            "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo",
         ])
     }
 }

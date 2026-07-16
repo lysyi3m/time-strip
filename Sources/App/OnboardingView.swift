@@ -21,7 +21,6 @@ struct OnboardingView: View {
             header
             hero
             stepsCard
-            footnote
         }
         .padding(30)
         .frame(width: 560)
@@ -54,10 +53,9 @@ struct OnboardingView: View {
     /// `padding` reproduces WidgetKit's content margins — without it the ribbon scales to the full
     /// tile width and its rail labels touch (and clip at) the edges.
     private var hero: some View {
-        WidgetRibbonView(snapshot: snapshot)
-            .padding(16)
-            .frame(height: 220)
-            .frame(maxWidth: .infinity)
+        WidgetRibbonView(snapshot: snapshot, maxRows: 4)
+            .padding(14)
+            .frame(width: 348, height: 164)   // ≈ the wide, short .systemMedium tile
             .background(WidgetBackground(scheme: scheme))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
@@ -66,7 +64,6 @@ struct OnboardingView: View {
             )
             .shadow(color: .black.opacity(dark ? 0.55 : 0.22), radius: 18, x: 0, y: 10)
             .padding(26)
-            .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 26, style: .continuous).fill(wallpaper)
             )
@@ -74,6 +71,7 @@ struct OnboardingView: View {
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .strokeBorder(.white.opacity(dark ? 0.06 : 0.4), lineWidth: 1)
             )
+            .frame(maxWidth: .infinity)   // center the framed widget in the column
     }
 
     /// A soft desktop-wallpaper gradient (muted, echoing the ribbon palette) for the widget to
@@ -91,8 +89,8 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Add the widget")
                 .font(.system(size: 15, weight: .semibold))
-            Step(number: 1, text: "Right-click the desktop and click **Edit Widgets**.")
-            Step(number: 2, text: "Find **Time Strip** and add it at **Extra Large**.")
+            Step(number: 1, text: "Open **Notification Center** (or right-click the desktop) and click **Edit Widgets**.")
+            Step(number: 2, text: "Find **Time Strip** and add it at the **Medium** size.")
             Step(number: 3, text: "Right-click the widget, choose **Edit Widget**, and pick your cities.")
         }
         .padding(20)
@@ -106,14 +104,6 @@ struct OnboardingView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(dark ? 0.06 : 0), lineWidth: 1)
         )
-    }
-
-    private var footnote: some View {
-        Text("There are no app settings — choose your cities on the widget itself.")
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 2)
     }
 }
 
