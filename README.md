@@ -11,6 +11,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/lysyi3m/time-strip/actions/workflows/ci.yml">
+    <img src="https://github.com/lysyi3m/time-strip/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+</p>
+
+<p align="center">
   <img src="assets/screenshot-light.png" alt="Time Strip widget, light mode" width="49%">
   <img src="assets/screenshot-dark.png" alt="Time Strip widget, dark mode" width="49%">
 </p>
