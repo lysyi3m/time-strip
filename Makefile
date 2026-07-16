@@ -9,6 +9,11 @@ DMG        := $(SCHEME).dmg
 WIDGET_ID  := com.mlkshkvch.timestrip.widget
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
+# Team-signed builds (install/dmg) need your Apple Developer Team ID. It's not committed to
+# project.yml — set it in your environment, e.g. `export DEVELOPMENT_TEAM=XXXXXXXXXX`.
+DEVELOPMENT_TEAM ?=
+require-team = @[ -n "$(DEVELOPMENT_TEAM)" ] || { echo "✗ Set DEVELOPMENT_TEAM (your Apple Team ID), e.g. export DEVELOPMENT_TEAM=XXXXXXXXXX"; exit 1; }
+
 .DEFAULT_GOAL := help
 .PHONY: help generate test build install uninstall dmg clean
 
@@ -31,10 +36,11 @@ build: generate ## Build a Release .app (compile check; unsigned)
 # free/personal team that profile is created by running the app from Xcode (⌘R) at least once.
 # After that first Xcode run, this target is a fast way to push rebuilds without Xcode.
 install: generate ## Re-deploy to /Applications (needs one prior Xcode ⌘R to provision)
+	$(require-team)
 	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
-		-derivedDataPath build -allowProvisioningUpdates clean build
+		-derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) clean build
 	@codesign -dvv "$(APP)" 2>&1 | grep -q adhoc \
-		&& { echo "✗ built ad-hoc (no Team) — set DEVELOPMENT_TEAM in project.yml"; exit 1; } \
+		&& { echo "✗ built ad-hoc (no Team) — is DEVELOPMENT_TEAM set correctly?"; exit 1; } \
 		|| echo "✓ Team-signed"
 	-osascript -e 'quit app "$(SCHEME)"' 2>/dev/null || true
 	rm -rf "$(INSTALLED)"
@@ -53,11 +59,12 @@ install: generate ## Re-deploy to /Applications (needs one prior Xcode ⌘R to p
 # dev account; distributing to *other* users needs Developer ID signing + notarization (a paid
 # Apple Developer account) — otherwise the widget won't register on their Mac. See README.
 dmg: generate ## Package a signed .dmg (works on your Mac; broad distribution needs notarization)
+	$(require-team)
 	@command -v create-dmg >/dev/null || { echo "Install create-dmg: brew install create-dmg"; exit 1; }
 	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
-		-derivedDataPath build -allowProvisioningUpdates clean build
+		-derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) clean build
 	@codesign -dvv "$(APP)" 2>&1 | grep -q adhoc \
-		&& { echo "✗ built ad-hoc — set DEVELOPMENT_TEAM in project.yml"; exit 1; } || echo "✓ Team-signed"
+		&& { echo "✗ built ad-hoc — is DEVELOPMENT_TEAM set correctly?"; exit 1; } || echo "✓ Team-signed"
 	rm -f "$(DMG)"
 	create-dmg --volname "$(SCHEME)" --window-size 500 320 --icon-size 100 \
 		--icon "$(SCHEME).app" 130 150 --app-drop-link 370 150 "$(DMG)" "$(APP)"

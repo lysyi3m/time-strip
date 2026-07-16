@@ -79,20 +79,27 @@ public struct WidgetBackground: View {
     /// A square grayscale tile of neutral-gray random pixels in the given luminance range. Under
     /// `softLight` at low opacity this dithers the flat gradient by ~1 level — invisible as grain.
     private static func makeNoise(size: Int, luminance: ClosedRange<Double>) -> CGImage {
-        var pixels = [UInt8](repeating: 0, count: size * size)
-        var rng = SystemRandomNumberGenerator()
-        for i in pixels.indices {
-            pixels[i] = UInt8((Double.random(in: luminance, using: &rng) * 255).rounded())
-        }
+        // Let CoreGraphics own the backing store (`data: nil`) and write the random bytes into
+        // `ctx.data`. Passing a Swift array's inout pointer as backing storage is only valid for
+        // the init call — it can dangle before `makeImage()` reads it. `bytesPerRow: 0` lets CG
+        // choose an aligned stride, so we index rows by the context's actual `bytesPerRow`.
         let ctx = CGContext(
-            data: &pixels,
+            data: nil,
             width: size,
             height: size,
             bitsPerComponent: 8,
-            bytesPerRow: size,
+            bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceGray(),
             bitmapInfo: CGImageAlphaInfo.none.rawValue
         )!
+        let rowBytes = ctx.bytesPerRow
+        let buffer = ctx.data!.assumingMemoryBound(to: UInt8.self)
+        var rng = SystemRandomNumberGenerator()
+        for y in 0..<size {
+            for x in 0..<size {
+                buffer[y * rowBytes + x] = UInt8((Double.random(in: luminance, using: &rng) * 255).rounded())
+            }
+        }
         return ctx.makeImage()!
     }
 }

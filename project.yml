@@ -13,9 +13,10 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.10"
     # CLI/CI builds pass CODE_SIGNING_ALLOWED=NO. For running the app + widget locally the bundles
-    # must be Team-signed (ad-hoc widgets don't register with macOS's widget daemon).
+    # must be Team-signed (ad-hoc widgets don't register with macOS's widget daemon). The Team ID
+    # is intentionally NOT committed: Xcode picks your own team automatically on ⌘R, and
+    # `make install`/`dmg` read it from the DEVELOPMENT_TEAM environment variable.
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: "FXH5QLJQTJ"
 
 targets:
 

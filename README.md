@@ -53,10 +53,16 @@ make generate                 # regenerate "Time Strip.xcodeproj" from project.y
 open "Time Strip.xcodeproj"   # select a signing team, then press ⌘R
 ```
 
-To install the widget without Xcode, set your signing team in `project.yml` and
-run `make install` (builds signed, copies to `/Applications`, and registers the
-widget). Run `make` to list all tasks (`generate`, `test`, `build`, `install`,
-`dmg`, `clean`).
+To install the widget without Xcode, set your Apple Team ID and run `make
+install` (builds signed, copies to `/Applications`, and registers the widget):
+
+```bash
+export DEVELOPMENT_TEAM=XXXXXXXXXX   # your Apple Developer Team ID
+make install
+```
+
+Run `make` to list all tasks (`generate`, `test`, `build`, `install`, `dmg`,
+`clean`).
 
 The Xcode project is generated from [`project.yml`](project.yml) — it is
 gitignored and must not be hand-edited.

@@ -42,11 +42,13 @@ public enum RibbonFormatter {
     /// Instant-based → DST-correct.
     public static func zoneTag(for city: City, at instant: Date) -> String {
         let tz = city.timeZone
-        let abbreviation = tz.abbreviation(for: instant) ?? ""
 
-        // `GMT±N` is the no-conventional-abbreviation fallback; normalize it to `UTC±N`
-        // built from the actual offset (so `:30`/`:45` zones read correctly).
-        if abbreviation.range(of: #"^GMT[+-]\d"#, options: .regularExpression) != nil {
+        // No conventional abbreviation (nil, or CoreFoundation's `GMT±N` placeholder) → build a
+        // `UTC±N` tag from the actual offset (so `:30`/`:45` zones read correctly, and the tag is
+        // never blank).
+        guard let abbreviation = tz.abbreviation(for: instant),
+              abbreviation.range(of: #"^GMT[+-]\d"#, options: .regularExpression) == nil
+        else {
             return utcOffsetTag(secondsFromGMT: tz.secondsFromGMT(for: instant))
         }
         return abbreviation
