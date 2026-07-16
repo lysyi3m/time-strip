@@ -6,7 +6,11 @@
   city. No third-party dependencies.
 </p>
 
-<!-- Add assets/icon.png and a screenshot here before release, e.g.:
+<p align="center">
+  <img src="assets/icon.png" alt="Time Strip app icon" width="180">
+</p>
+
+<!-- Add a screenshot here before release, e.g.:
 <p align="center"><img src="assets/screenshot.png" alt="Time Strip widget" width="80%"></p>
 -->
 
