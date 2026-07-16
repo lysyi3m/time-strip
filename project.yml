@@ -65,6 +65,7 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: Time Strip
         INFOPLIST_KEY_LSUIElement: "NO"
+        INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Emil Kashkevich · MIT License"
         # macOS requires WidgetKit extensions to be sandboxed, and an extension's sandbox must be
         # matched by its container app. (No sandbox = the widget never registers with chronod.)
         ENABLE_APP_SANDBOX: "YES"
