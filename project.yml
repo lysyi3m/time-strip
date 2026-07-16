@@ -12,9 +12,10 @@ settings:
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.10"
-    # No signing needed for CI-style builds; set DEVELOPMENT_TEAM when you archive.
+    # CLI/CI builds pass CODE_SIGNING_ALLOWED=NO. For running the app + widget locally the bundles
+    # must be Team-signed (ad-hoc widgets don't register with macOS's widget daemon).
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "FXH5QLJQTJ"
 
 targets:
 
@@ -64,6 +65,9 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: Time Strip
         INFOPLIST_KEY_LSUIElement: "NO"
+        # macOS requires WidgetKit extensions to be sandboxed, and an extension's sandbox must be
+        # matched by its container app. (No sandbox = the widget never registers with chronod.)
+        ENABLE_APP_SANDBOX: "YES"
 
   # ── WidgetKit extension: views, timeline provider, configuration intent ────
   TimeStripWidget:
@@ -86,6 +90,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.timestrip.widget
+        # Mandatory for a macOS widget extension — without the App Sandbox entitlement the
+        # system won't load it into the widget gallery.
+        ENABLE_APP_SANDBOX: "YES"
 
   # ── Unit tests for the core. Not app-hosted → runner isn't sandboxed, so it
   #    can read fixtures directly. @testable import TimeStripKit. ─────────────

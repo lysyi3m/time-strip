@@ -18,12 +18,3 @@ Config/*.entitlements
 # ── Swift Package Manager (if ever added) ──
 .build/
 .swiftpm/
-
-# ── Python (city-dataset build script, tools/build_cities.py) ──
-__pycache__/
-*.pyc
-.venv/
-venv/
-
-# Note: the generated Resources/cities.json IS committed (static, CC-BY, reproducible
-# via tools/build_cities.py). Do not ignore it.
