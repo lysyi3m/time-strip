@@ -76,28 +76,35 @@ enum Palette {
         scheme == .dark ? Color(hex: 0xFFFFFF) : Color(hex: 0x1D1D1F)
     }
 
-    // MARK: now-indicator "frosted glass" tokens
+    // MARK: now-indicator "crystal lens" tokens
     //
-    // The NOW marker is a translucent glass slab, not a stroke: a milky fill, a recessed inner
-    // shadow, and a top-lit rim highlight. Placeholders — tuned by eye over the ribbons.
+    // The NOW marker reads like a piece of polished crystal, not frosted glass: a *faint* lift
+    // fill (no milky veil), a crisp 1px top specular, a soft inner shadow hugging the bottom edge,
+    // and a thin rim. Cutting the veil restores the contrast/saturation of the ribbon seen through
+    // it. Placeholders — tuned by eye over the ribbons.
 
-    /// Milky translucent fill — lightens the current column like frosted acrylic. Kept within the
-    /// designer's 10–15% so it doesn't wash out the now-column numbers underneath (the most
-    /// important ones); the glass reads mostly from its rim highlight + inner shadow.
+    /// Barely-there lift fill — just enough to raise the current column off the ribbon, ~30% below
+    /// the old frosted value so the glass no longer looks milky and the ribbon reads through it
+    /// with its own contrast/saturation intact. The lens now reads from specular + rim + shadow.
     static func nowGlassFill(_ scheme: ColorScheme) -> Color {
-        Color.white.opacity(scheme == .dark ? 0.12 : 0.15)
+        Color.white.opacity(scheme == .dark ? 0.08 : 0.10)
     }
 
-    /// Inner shadow that recesses the glass slightly into the surface for depth.
+    /// Crisp near-white 1px specular skimming the top edge — the polished-crystal highlight.
+    static func nowGlassSpecular(_ scheme: ColorScheme) -> Color {
+        Color.white.opacity(scheme == .dark ? 0.9 : 0.95)
+    }
+
+    /// Soft inner shadow hugging the bottom inner edge, for recessed crystal depth.
     static func nowGlassInnerShadow(_ scheme: ColorScheme) -> Color {
-        Color.black.opacity(scheme == .dark ? 0.28 : 0.18)
+        Color.black.opacity(scheme == .dark ? 0.30 : 0.16)
     }
 
-    /// Crisp near-white rim tracing the whole capsule — brightest at the top, but still clearly
-    /// present down the sides and along the bottom so the marker reads on any ribbon behind it.
+    /// Thin near-white rim tracing the capsule — brightest at the top, present down the sides so
+    /// the marker still reads on any ribbon behind it. Subtler than before now the specular leads.
     static func nowGlassRim(_ scheme: ColorScheme) -> LinearGradient {
         LinearGradient(
-            colors: [.white.opacity(0.95), .white.opacity(0.55)],
+            colors: [.white.opacity(0.8), .white.opacity(0.4)],
             startPoint: .top,
             endPoint: .bottom
         )

@@ -23,6 +23,16 @@ public struct WidgetBackground: View {
                     .blendMode(.softLight)
                     .opacity(scheme == .dark ? 0.016 : 0.0115)
             }
+            // Very subtle inner hairline tracing the container's own rounded shape, so the widget
+            // reads as carved from a single material (no visible border/divider). Falls back to a
+            // rectangle outside a widget container (previews/onboarding) — still fine at this weight.
+            .overlay(
+                ContainerRelativeShape()
+                    .strokeBorder(
+                        scheme == .dark ? Color.black.opacity(0.06) : Color.white.opacity(0.05),
+                        lineWidth: 0.5
+                    )
+            )
         }
     }
 
@@ -39,8 +49,10 @@ public struct WidgetBackground: View {
     /// width, so it scales with the container. Fixed origin — part of the material, not dynamic.
     private func bloom(width: CGFloat) -> some View {
         let tint = scheme == .dark ? Color(hex: 0x7467B4) : Color(hex: 0xB9ACDC)
-        let opacity = scheme == .dark ? 0.04 : 0.025
-        let radiusFraction: CGFloat = scheme == .dark ? 0.65 : 0.70
+        // Dark mode spreads the bloom over a wider area at lower opacity so it reads as ambient
+        // depth rather than a concentrated hotspot (designer note §6).
+        let opacity = scheme == .dark ? 0.03 : 0.025
+        let radiusFraction: CGFloat = scheme == .dark ? 0.95 : 0.70
         let origin = scheme == .dark ? UnitPoint(x: 0.47, y: 0.42) : UnitPoint(x: 0.42, y: 0.44)
         return RadialGradient(
             colors: [tint.opacity(opacity), tint.opacity(0)],

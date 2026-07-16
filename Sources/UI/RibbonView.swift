@@ -105,22 +105,41 @@ public struct RibbonView: View {
         }
     }
 
-    /// A slab of frosted glass laid over the current column — not a stroked outline. Read from
-    /// three light cues instead of a hard border: a faint translucent fill, a 1px inner shadow for
-    /// recessed depth, and a top-lit rim highlight. Centered on the fixed nowColumnIndex; breathes
-    /// above/below the row stack (invariant §6.3 — one vertical line).
+    /// A slab of polished crystal laid over the current column — not a stroked outline, and no
+    /// milky frost. Reads from four light cues: a faint lift fill, a crisp 1px top specular, a soft
+    /// inner shadow hugging the bottom inner edge, and a thin top-lit rim. Centered on the fixed
+    /// nowColumnIndex; breathes above/below the row stack (invariant §6.3 — one vertical line).
     private func nowFrame(_ layout: RibbonLayout) -> some View {
         let r = layout.nowFrameCornerRadius
         // Defensive: keep the marker on a valid column even if a malformed snapshot supplied an
         // out-of-range nowColumnIndex (the engine always produces a valid one).
         let nowColumn = min(max(snapshot.nowColumnIndex, 0), max(columns - 1, 0))
-        return RoundedRectangle(cornerRadius: r, style: .continuous)
-            .fill(Palette.nowGlassFill(scheme)
-                .shadow(.inner(color: Palette.nowGlassInnerShadow(scheme), radius: 1.5, x: 0, y: 1)))
+        let shape = RoundedRectangle(cornerRadius: r, style: .continuous)
+        return shape
+            .fill(Palette.nowGlassFill(scheme))
+            // Soft inner shadow hugging just the bottom inner edge (recessed crystal depth).
             .overlay(
-                RoundedRectangle(cornerRadius: r, style: .continuous)
-                    .strokeBorder(Palette.nowGlassRim(scheme), lineWidth: 1.5)
+                shape.fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.72),
+                            .init(color: Palette.nowGlassInnerShadow(scheme), location: 1),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             )
+            // Crisp 1px specular skimming the top edge — the polished highlight.
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(Palette.nowGlassSpecular(scheme))
+                    .frame(height: 1)
+                    .padding(.horizontal, r * 0.5)
+                    .padding(.top, 1)
+                    .blur(radius: 0.3)
+            }
+            .overlay(shape.strokeBorder(Palette.nowGlassRim(scheme), lineWidth: 1))
             .shadow(color: .black.opacity(0.12), radius: 7, x: 0, y: 2)
             .frame(
                 width: layout.slotWidth,
@@ -148,7 +167,7 @@ private struct CityRow: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: layout.rowHeight * 0.05) {
                 Text(row.city.name)
-                    .font(.system(size: layout.cityFont, weight: .medium))
+                    .font(.system(size: layout.cityFont, weight: .semibold))
                     .tracking(-0.1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -161,10 +180,11 @@ private struct CityRow: View {
             }
             .padding(.trailing, layout.railGap)   // guaranteed gap before the ribbon
             .frame(width: layout.railWidth, height: layout.rowHeight, alignment: .leading)
-            // Whisper-faint fade so the rail feels seated in the material rather than printed on top.
+            // Whisper-faint left→right luminance lift (~3%) so the rail reads as its own material —
+            // no divider, no border, just enough separation from the ribbon beside it.
             .background(
                 LinearGradient(
-                    colors: [Palette.railLabel(scheme).opacity(0.03), .clear],
+                    colors: [.white.opacity(scheme == .dark ? 0.035 : 0.03), .clear],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
@@ -275,20 +295,27 @@ private struct RibbonRow: View {
     private func clockHour(_ slot: Slot) -> Double { Double(slot.hour) + Double(slot.minute) / 60 }
 
     /// A gradient with a stop at each column center colored by that column's position on the
-    /// continuous time-of-day ramp (plus solid edges) — a smooth intensity gradient.
+    /// continuous time-of-day ramp (plus solid edges) — a smooth intensity gradient. The last ~5pt
+    /// before each rounded end is held flat (a doubled edge stop) so the color doesn't keep ramping
+    /// into the rounded corners, matching Apple's treatment of rounded surfaces (§2).
     private var bandGradient: LinearGradient {
         guard let first = slots.first, let last = slots.last else {
             return LinearGradient(colors: [.clear], startPoint: .leading, endPoint: .trailing)
         }
         let n = slots.count
+        let firstColor = Palette.color(forHour: clockHour(first), scheme)
+        let lastColor = Palette.color(forHour: clockHour(last), scheme)
+        let cap = min(5 / max(width, 1), CGFloat(0.5 / Double(n)))  // ~5pt, never past the first half-slot
         var stops: [Gradient.Stop] = [
-            Gradient.Stop(color: Palette.color(forHour: clockHour(first), scheme), location: 0)
+            Gradient.Stop(color: firstColor, location: 0),
+            Gradient.Stop(color: firstColor, location: cap),
         ]
         for i in slots.indices {
             let location = (Double(i) + 0.5) / Double(n)
             stops.append(Gradient.Stop(color: Palette.color(forHour: clockHour(slots[i]), scheme), location: location))
         }
-        stops.append(Gradient.Stop(color: Palette.color(forHour: clockHour(last), scheme), location: 1))
+        stops.append(Gradient.Stop(color: lastColor, location: 1 - cap))
+        stops.append(Gradient.Stop(color: lastColor, location: 1))
         return LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
     }
 
@@ -304,8 +331,9 @@ private struct RibbonRow: View {
         // weekday) is a two-line group, centered. The now-column number is bolded so the current
         // hour reads regardless of the ribbon behind it — the glass marker alone can vanish over
         // bright daytime cells.
-        // Slight negative spacing pulls the number and its meridiem/weekday a touch closer.
-        VStack(spacing: -layout.rowHeight * 0.05) {
+        // Slight negative spacing pulls the number and its meridiem/weekday a touch closer; the
+        // 12h layout (every cell carries an am/pm) tightens by a further ~1pt per designer note.
+        VStack(spacing: -layout.rowHeight * 0.05 - (is12h ? 1 : 0)) {
             Text(label.primary)
                 .font(.system(size: layout.hourFont, weight: isNow ? .bold : .regular))
                 .lineLimit(1)
