@@ -49,9 +49,10 @@ struct OnboardingView: View {
     }
 
     /// The real widget content + material, floating (shadow + rim) on a muted "desktop" panel so
-    /// it reads as a placed widget. Renders the current instant, so it's always live. The inner
-    /// `padding` reproduces WidgetKit's content margins — without it the ribbon scales to the full
-    /// tile width and its rail labels touch (and clip at) the edges.
+    /// it reads as a placed widget. Renders the snapshot captured at launch (a static preview — the
+    /// onboarding window is transient, so it doesn't tick). The inner `padding` reproduces
+    /// WidgetKit's content margins — without it the ribbon scales to the full tile width and its
+    /// rail labels touch (and clip at) the edges.
     private var hero: some View {
         WidgetRibbonView(snapshot: snapshot, maxRows: 4)
             .padding(14)
