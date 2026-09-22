@@ -8,6 +8,8 @@ single vertical marker reads the same instant in every city.
 Shared by `recogs`, `time-strip` and `pdf-unpack`. Where a repo-specific section below
 contradicts a rule here, the repo-specific rule wins — and say so when you notice it.
 
+- **One toolchain.** macOS 26+ (iOS 26+ where there is an iOS target), Swift 6 language mode,
+  Xcode 27. CI pins the same Xcode, so code that builds locally must build there too.
 - **XcodeGen owns the project.** `project.yml` is the source of truth. Never hand-edit the
   generated `.xcodeproj`. Never commit it, `Config/*.plist` or `Config/*.entitlements`. Run
   `make generate` after every `project.yml` change.
@@ -32,7 +34,7 @@ contradicts a rule here, the repo-specific rule wins — and say so when you not
 
 ## Stack
 
-- SwiftUI + WidgetKit, macOS 26+, Swift 5.10. No iOS target.
+- SwiftUI + WidgetKit. No iOS target.
 - Four product targets: `TimeStripKit` (`Sources/Kit`, UI-free core), `TimeStripUI`
   (`Sources/UI`, shared SwiftUI views), `TimeStripWidget` (`Sources/Widget`, the extension),
   and `Time Strip` (`Sources/App`, the host app that embeds the widget).

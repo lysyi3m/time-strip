@@ -15,7 +15,7 @@ settings:
   base:
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
-    SWIFT_VERSION: "5.10"
+    SWIFT_VERSION: "6.0"
     # CLI/CI builds pass CODE_SIGNING_ALLOWED=NO. For running the app + widget locally the bundles
     # must be Team-signed (ad-hoc widgets don't register with macOS's widget daemon). The Team ID
     # is not committed: it comes from .env through Config/Local.xcconfig (see `make local-config`).

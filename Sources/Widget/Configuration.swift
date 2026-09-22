@@ -16,7 +16,7 @@ struct CityEntity: AppEntity {
     }
 
     static var typeDisplayRepresentation: TypeDisplayRepresentation { "City" }
-    static var defaultQuery = CityQuery()
+    static let defaultQuery = CityQuery()
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(name)", subtitle: "\(region)")
@@ -44,8 +44,8 @@ struct CityQuery: EntityStringQuery {
 /// is the reference/home row. Up to `maxCities` are kept; how many actually render depends on the
 /// family (fewer on `.systemMedium`, more on `.systemLarge`).
 struct TimeStripConfigurationIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Time Strip"
-    static var description = IntentDescription("Choose the time zones to show as ribbons.")
+    static let title: LocalizedStringResource = "Time Strip"
+    static let description = IntentDescription("Choose the time zones to show as ribbons.")
 
     static let maxCities = 7
 
