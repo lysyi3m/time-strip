@@ -16,6 +16,14 @@ xcuserdata/
 Config/*.plist
 Config/*.entitlements
 
-# ── Swift Package Manager (if ever added) ──
+# ── Swift Package Manager ──
 .build/
 .swiftpm/
+
+# ── Coding-agent guidance is shared, not personal ──
+# The global ignore drops CLAUDE.md and .claude everywhere; both are project
+# guidance here. The shared allowlist is tracked, the per-machine one is not.
+!CLAUDE.md
+!.claude/
+!.claude/settings.json
+.claude/settings.local.json
