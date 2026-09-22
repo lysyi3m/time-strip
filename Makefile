@@ -9,19 +9,36 @@ DMG        := $(SCHEME).dmg
 WIDGET_ID  := com.mlkshkvch.timestrip.widget
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-# Team-signed builds (install/dmg) need your Apple Developer Team ID. It's not committed to
-# project.yml — set it in your environment, e.g. `export DEVELOPMENT_TEAM=XXXXXXXXXX`.
-DEVELOPMENT_TEAM ?=
-require-team = @[ -n "$(DEVELOPMENT_TEAM)" ] || { echo "✗ Set DEVELOPMENT_TEAM (your Apple Team ID), e.g. export DEVELOPMENT_TEAM=XXXXXXXXXX"; exit 1; }
+LOCAL_XCCONFIG := Config/Local.xcconfig
+TEAM_SETTING   := ^DEVELOPMENT_TEAM = [A-Z0-9]{10}$$
+
+# Team-signed builds (install/dmg) need your Apple Developer Team ID, which `local-config`
+# projects from .env. Fail early rather than produce an ad-hoc build the widget daemon ignores.
+require-team = @grep -qsE '$(TEAM_SETTING)' $(LOCAL_XCCONFIG) || { echo "✗ Set DEVELOPMENT_TEAM in .env (copy .env.example)"; exit 1; }
 
 .DEFAULT_GOAL := help
-.PHONY: help generate test build install uninstall dmg clean
+.PHONY: help generate local-config test build install uninstall dmg clean
 
 help: ## List available targets
 	@grep -E '^[a-z][a-zA-Z-]*:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## / — /' | sort
 
-generate: ## Regenerate the Xcode project from project.yml
+generate: local-config ## Regenerate the Xcode project from project.yml
 	xcodegen generate
+
+# Xcode cannot read .env, so the machine-local settings it needs are projected into an xcconfig
+# that Config/Base.xcconfig includes. This keeps .env the single place to set DEVELOPMENT_TEAM,
+# for both `xcodebuild` and a plain Cmd-R in Xcode. Only a 10-character Team ID is projected;
+# quotes and a trailing comment are dropped, and anything else counts as unset.
+local-config: ## Project machine-local settings from .env into Config/Local.xcconfig
+	@mkdir -p Config
+	@printf '// Generated from .env by `make generate`. Do not edit, do not commit.\n' > $(LOCAL_XCCONFIG)
+	@if [ -f .env ]; then \
+		sed -nE "s/^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*[\"']?([A-Z0-9]{10})[\"']?([[:space:]]*(#.*)?)?$$/DEVELOPMENT_TEAM = \1/p" .env \
+			>> $(LOCAL_XCCONFIG); \
+	fi
+	@grep -qE '$(TEAM_SETTING)' $(LOCAL_XCCONFIG) \
+		&& echo "✓ DEVELOPMENT_TEAM from .env" \
+		|| echo "• no valid DEVELOPMENT_TEAM in .env (a 10-character Team ID) — signing will need a team picked in Xcode"
 
 test: generate ## Run the unit tests
 	xcodebuild test -project "$(PROJECT)" -scheme "$(SCHEME)" \
@@ -38,9 +55,9 @@ build: generate ## Build a Release .app (compile check; unsigned)
 install: generate ## Re-deploy to /Applications (needs one prior Xcode ⌘R to provision)
 	$(require-team)
 	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
-		-derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) clean build
+		-derivedDataPath build -allowProvisioningUpdates clean build
 	@codesign -dvv "$(APP)" 2>&1 | grep -q adhoc \
-		&& { echo "✗ built ad-hoc (no Team) — is DEVELOPMENT_TEAM set correctly?"; exit 1; } \
+		&& { echo "✗ built ad-hoc (no Team) — is DEVELOPMENT_TEAM in .env correct?"; exit 1; } \
 		|| echo "✓ Team-signed"
 	-osascript -e 'quit app "$(SCHEME)"' 2>/dev/null || true
 	rm -rf "$(INSTALLED)"
@@ -62,9 +79,9 @@ dmg: generate ## Package a signed .dmg (works on your Mac; broad distribution ne
 	$(require-team)
 	@command -v create-dmg >/dev/null || { echo "Install create-dmg: brew install create-dmg"; exit 1; }
 	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
-		-derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) clean build
+		-derivedDataPath build -allowProvisioningUpdates clean build
 	@codesign -dvv "$(APP)" 2>&1 | grep -q adhoc \
-		&& { echo "✗ built ad-hoc — is DEVELOPMENT_TEAM set correctly?"; exit 1; } || echo "✓ Team-signed"
+		&& { echo "✗ built ad-hoc — is DEVELOPMENT_TEAM in .env correct?"; exit 1; } || echo "✓ Team-signed"
 	rm -f "$(DMG)"
 	create-dmg --volname "$(SCHEME)" --window-size 500 320 --icon-size 100 \
 		--icon "$(SCHEME).app" 130 150 --app-drop-link 370 150 "$(DMG)" "$(APP)"
