@@ -99,7 +99,7 @@ struct TimeStripWidget: Widget {
         .description("Time zones as day/night ribbons.")
         .supportedFamilies([.systemMedium, .systemLarge])
         // Keep WidgetKit's standard content margins (~16pt, HIG): the content is sized to fit
-        // within them and scales to fit, so it no longer needs to claim the full bounds.
+        // within them and scales to fit, so it does not need to claim the full bounds.
     }
 }
 

@@ -1,7 +1,7 @@
 import XCTest
 @testable import TimeStripKit
 
-/// P6/P8: the pure configuration-resolution decision behind the widget provider.
+/// The pure configuration-resolution decision behind the widget provider.
 final class RibbonRowsTests: XCTestCase {
 
     private let la = City(name: "Los Angeles", tzid: "America/Los_Angeles")

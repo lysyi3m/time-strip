@@ -64,7 +64,7 @@ final class RibbonEngineTests: XCTestCase {
         }
     }
 
-    // MARK: - 1. Alignment & shape
+    // MARK: - Alignment & shape
 
     func testAlignmentAndShape() {
         let now = instant(2026, 7, 13, 12, 34, tzid: "UTC")
@@ -84,7 +84,7 @@ final class RibbonEngineTests: XCTestCase {
         XCTAssertLessThan(now, nowInstant.addingTimeInterval(3600))
     }
 
-    // MARK: - 2. DST transition (spring forward)
+    // MARK: - DST transition (spring forward)
 
     func testSpringForwardSkipsHour() {
         // EU spring forward: 2026-03-29, Warsaw 02:00 CET → 03:00 CEST.
@@ -98,7 +98,7 @@ final class RibbonEngineTests: XCTestCase {
         XCTAssertFalse(warsawHours.contains(2), "02 should be skipped: \(warsawHours)")
     }
 
-    // MARK: - 3. DST transition (fall back)
+    // MARK: - DST transition (fall back)
 
     func testFallBackRepeatsHour() {
         // EU fall back: 2026-10-25, Warsaw 03:00 CEST → 02:00 CET (02:00 repeats).
@@ -131,7 +131,7 @@ final class RibbonEngineTests: XCTestCase {
         assertRowsMatchLocalHours(snapshot)
     }
 
-    // MARK: - 4. Sub-hour offset
+    // MARK: - Sub-hour offset
 
     func testSubHourOffsetDoesNotPerturbGrid() {
         let now = instant(2026, 7, 13, 12, 34, tzid: "UTC")
@@ -153,7 +153,7 @@ final class RibbonEngineTests: XCTestCase {
         }
     }
 
-    // MARK: - 5. Day boundary (midnight crossing)
+    // MARK: - Day boundary (midnight crossing)
 
     func testDayBoundaryFlag() {
         // Warsaw window sits mid-afternoon (no crossing); Singapore crosses local midnight.
@@ -188,7 +188,7 @@ final class RibbonEngineTests: XCTestCase {
         XCTAssertNotEqual(comps.day, prevComps.day, "boundary slot is a new day-of-month")
     }
 
-    // MARK: - 6. Reference index
+    // MARK: - Reference index
 
     func testReferenceIndexFloorsToThatZone() {
         let now = instant(2026, 7, 13, 12, 34, tzid: "UTC")
@@ -217,7 +217,7 @@ final class RibbonEngineTests: XCTestCase {
         assertRowsMatchLocalHours(ref1)
     }
 
-    // MARK: - 7. Row trimming (per-family)
+    // MARK: - Row trimming (per-family)
 
     func testTrimmedToRows() {
         let now = instant(2026, 7, 13, 12, 0, tzid: "UTC")

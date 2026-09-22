@@ -38,7 +38,7 @@ final class RibbonFormatterTests: XCTestCase {
                 (f.pmSymbol ?? "").lowercased(with: locale))
     }
 
-    // MARK: - 0. Accessibility summary
+    // MARK: - Accessibility summary
 
     func testAccessibilitySummary() {
         let now = utc(2026, 7, 13, 12, 0, tzid: "UTC")
@@ -63,7 +63,7 @@ final class RibbonFormatterTests: XCTestCase {
         )
     }
 
-    // MARK: - 1. Clock detection
+    // MARK: - Clock detection
 
     func testClockDetection() {
         XCTAssertTrue(RibbonFormatter.uses12HourClock(locale: en))
@@ -71,7 +71,7 @@ final class RibbonFormatterTests: XCTestCase {
         XCTAssertFalse(RibbonFormatter.uses12HourClock(locale: de))
     }
 
-    // MARK: - 2. Hour labels
+    // MARK: - Hour labels
 
     func testHourLabels24h() {
         let l = RibbonFormatter.slotLabel(
@@ -117,7 +117,7 @@ final class RibbonFormatterTests: XCTestCase {
         XCTAssertEqual(l.secondary, meridiem(en).am)
     }
 
-    // MARK: - 3. Date slot
+    // MARK: - Date slot
 
     func testDateSlot() {
         let tz = TimeZone(identifier: "Europe/Warsaw")!
@@ -150,7 +150,7 @@ final class RibbonFormatterTests: XCTestCase {
         XCTAssertEqual(plLabel.secondary, expected("EEE", pl))
     }
 
-    // MARK: - 4. Zone tag
+    // MARK: - Zone tag
 
     func testZoneTagDSTOffset() {
         // macOS 15+/ICU returns GMT-offset abbreviations for European zones (no longer

@@ -1,7 +1,7 @@
 import XCTest
 @testable import TimeStripKit
 
-/// P5: the pure timeline-baking helper the Widget wraps in `TimelineEntry`s.
+/// The pure timeline-baking helper the Widget wraps in `TimelineEntry`s.
 final class RibbonTimelineTests: XCTestCase {
 
     private var warsaw: City { City(name: "Warsaw", tzid: "Europe/Warsaw") }

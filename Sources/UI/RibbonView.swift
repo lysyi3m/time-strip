@@ -51,8 +51,7 @@ private extension CGFloat {
     func clamped(_ lo: CGFloat, _ hi: CGFloat) -> CGFloat { Swift.min(Swift.max(self, lo), hi) }
 }
 
-/// Renders a fully-resolved `RibbonSnapshot` per the structural rules in spec §4/§6, filling the
-/// container it's given. Each row is a wall-clock intensity gradient (night → day → dusk by local
+/// Renders a fully-resolved `RibbonSnapshot`, filling the container it's given. Each row is a wall-clock intensity gradient (night → day → dusk by local
 /// hour), masked into one continuous bar whose only rounded corners are the row's outer ends; a
 /// day boundary is marked by the date slot, not a gap. Static snapshot: no
 /// hover/press/scrub/animation.
@@ -96,7 +95,7 @@ public struct RibbonView: View {
                 }
                 // The now-frame is an overlay (it doesn't affect the row block's size), so the block
                 // stays exactly `contentHeight` and centers cleanly. It spans every row as one
-                // straight vertical line at the fixed nowColumnIndex, breathing above/below (§6.3).
+                // straight vertical line at the fixed nowColumnIndex, breathing above/below.
                 .frame(width: size.width, height: layout.contentHeight)
                 .overlay(alignment: .topLeading) { nowFrame(layout) }
                 // Center the fixed-height block in the container (balanced breathing room).
@@ -108,7 +107,7 @@ public struct RibbonView: View {
     /// A slab of polished crystal laid over the current column — not a stroked outline, and no
     /// milky frost. Reads from four light cues: a faint lift fill, a crisp 1px top specular, a soft
     /// inner shadow hugging the bottom inner edge, and a thin top-lit rim. Centered on the fixed
-    /// nowColumnIndex; breathes above/below the row stack (invariant §6.3 — one vertical line).
+    /// nowColumnIndex; breathes above/below the row stack as one vertical line.
     private func nowFrame(_ layout: RibbonLayout) -> some View {
         let r = layout.nowFrameCornerRadius
         // Defensive: keep the marker on a valid column even if a malformed snapshot supplied an
@@ -253,7 +252,7 @@ private struct RibbonRow: View {
     /// Contiguous spans of columns belonging to the same local day. A boundary falls *before* any
     /// column whose `isDayStart` is set (excluding index 0, the row's outer edge). Runs abut with
     /// no inserted geometry — each run spans exactly its slots, so column centers (the numbers)
-    /// never move (invariant §6.2). `roundLeading`/`roundTrailing` mark the row's outer ends.
+    /// never move. `roundLeading`/`roundTrailing` mark the row's outer ends.
     private var dayRuns: [(start: Int, originX: CGFloat, width: CGFloat, roundLeading: Bool, roundTrailing: Bool)] {
         guard !slots.isEmpty else { return [] }  // `1...slots.count` would trap on an empty row
         let boundaries = Set(slots.indices.filter { $0 > 0 && slots[$0].isDayStart })
@@ -297,7 +296,7 @@ private struct RibbonRow: View {
     /// A gradient with a stop at each column center colored by that column's position on the
     /// continuous time-of-day ramp (plus solid edges) — a smooth intensity gradient. The last ~5pt
     /// before each rounded end is held flat (a doubled edge stop) so the color doesn't keep ramping
-    /// into the rounded corners, matching Apple's treatment of rounded surfaces (§2).
+    /// into the rounded corners, matching Apple's treatment of rounded surfaces.
     private var bandGradient: LinearGradient {
         guard let first = slots.first, let last = slots.last else {
             return LinearGradient(colors: [.clear], startPoint: .leading, endPoint: .trailing)
@@ -332,7 +331,7 @@ private struct RibbonRow: View {
         // hour reads regardless of the ribbon behind it — the glass marker alone can vanish over
         // bright daytime cells.
         // Slight negative spacing pulls the number and its meridiem/weekday a touch closer; the
-        // 12h layout (every cell carries an am/pm) tightens by a further ~1pt per designer note.
+        // 12h layout (every cell carries an am/pm) tightens by a further ~1pt.
         VStack(spacing: -layout.rowHeight * 0.05 - (is12h ? 1 : 0)) {
             Text(label.primary)
                 .font(.system(size: layout.hourFont, weight: isNow ? .bold : .regular))

@@ -1,7 +1,7 @@
 import XCTest
 @testable import TimeStripKit
 
-/// P6: the OS-sourced zone catalog behind the widget's city picker.
+/// The OS-sourced zone catalog behind the widget's city picker.
 final class CityCatalogTests: XCTestCase {
 
     func testAllZonesAreOSSourcedAndRegionQualified() {

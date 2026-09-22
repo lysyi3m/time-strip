@@ -15,9 +15,9 @@ public struct SlotLabel: Hashable, Sendable {
 /// Turns a `Slot` + `City` into the locale-correct strings the view renders. Pure; locale
 /// is a parameter (the UI passes `.current`) so it is fully testable.
 ///
-/// Note: the documented spec signature `slotLabel(for:locale:is12h:)` gains a `timeZone`
-/// parameter — the date slot's day-of-month/weekday derive from the absolute instant in the
-/// city's zone, which a `Slot` (hour/minute only) can't supply on its own.
+/// `slotLabel` takes the city's `timeZone` because the date slot's day-of-month and weekday
+/// derive from the absolute instant in that zone, which a `Slot` (hour/minute only) cannot
+/// supply on its own.
 public enum RibbonFormatter {
 
     /// 12h vs 24h from the locale — reflects both the region default and the system
