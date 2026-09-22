@@ -42,8 +42,8 @@ drag **Time Strip** into Applications.
 
 ## Requirements
 
-- macOS 15 (Sequoia) or later
-- Xcode 16+ and `xcodegen` (to build)
+- macOS 26 or later
+- Xcode 26 or later, to build
 
 ## Build & run
 
