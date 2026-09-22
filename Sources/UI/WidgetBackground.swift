@@ -1,13 +1,11 @@
 import SwiftUI
 import CoreGraphics
 
-/// The widget's container material — a quiet surface, not a flat color. Three layers per the
-/// designer spec: a broad near-invisible vertical gradient, a static ambient radial "bloom"
-/// (a fixed part of the material — it never tracks the current hour or animates), and a
-/// monochromatic 1px noise dither at ~1–2% via `softLight`. At viewing distance none of it
-/// reads as grain; the widget just stops feeling digitally flat.
-///
-/// Placeholder pending final designer tokens, but structured so the tokens swap cleanly.
+/// The widget's container material — a quiet surface, not a flat color. Three layers: a broad
+/// near-invisible vertical gradient, a static ambient radial "bloom" (a fixed part of the
+/// material — it never tracks the current hour or animates), and a monochromatic 1px noise
+/// dither at ~1–2% via `softLight`. At viewing distance none of it reads as grain; the widget
+/// just stops feeling digitally flat.
 public struct WidgetBackground: View {
     private let scheme: ColorScheme
 
@@ -50,7 +48,7 @@ public struct WidgetBackground: View {
     private func bloom(width: CGFloat) -> some View {
         let tint = scheme == .dark ? Color(hex: 0x7467B4) : Color(hex: 0xB9ACDC)
         // Dark mode spreads the bloom over a wider area at lower opacity so it reads as ambient
-        // depth rather than a concentrated hotspot (designer note §6).
+        // depth rather than a concentrated hotspot.
         let opacity = scheme == .dark ? 0.03 : 0.025
         let radiusFraction: CGFloat = scheme == .dark ? 0.95 : 0.70
         let origin = scheme == .dark ? UnitPoint(x: 0.47, y: 0.42) : UnitPoint(x: 0.42, y: 0.44)

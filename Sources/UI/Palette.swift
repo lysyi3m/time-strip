@@ -1,18 +1,18 @@
 import SwiftUI
 
-/// Continuous wall-clock color ramp + UI tokens. Iterating — placeholders, not frozen.
+/// Continuous wall-clock color ramp + UI tokens.
 ///
 /// Time of day reads through a smooth *intensity* (brightness) curve on a warm/cool hue: deep
 /// cool night → purple dawn → bright near-neutral day (peak ≈ noon) → warm amber dusk → back
 /// to night. The color is a **continuous** function of the local clock hour (interpolated
 /// between control points), so every column differs slightly and a row reads as one smooth
 /// gradient — not flat per-band blocks. Brightness tracks time-of-day, so shading survives
-/// desaturation / tinted rendering (spec §6.6).
+/// desaturation / tinted rendering.
 enum Palette {
 
     private struct Ramp { let points: [(hour: Double, rgb: RGB)] }
 
-    // Light ("One Row Anatomy" proposal): subtle, premium, calm — calm indigo night rising
+    // Light: subtle, premium, calm — calm indigo night rising
     // through cool lavender dawn to warm ivory day (not yellow), then cozy amber dusk back to
     // indigo. Softer/lighter than dark mode: night stays light enough that numbers read dark
     // throughout (matching the light theme). Anchors: night #5E6EA8, dawn #C3B7DF,
@@ -80,12 +80,12 @@ enum Palette {
     //
     // The NOW marker reads like a piece of polished crystal, not frosted glass: a *faint* lift
     // fill (no milky veil), a crisp 1px top specular, a soft inner shadow hugging the bottom edge,
-    // and a thin rim. Cutting the veil restores the contrast/saturation of the ribbon seen through
-    // it. Placeholders — tuned by eye over the ribbons.
+    // and a thin rim. Keeping the fill faint preserves the contrast and saturation of the ribbon
+    // seen through it. Values are tuned by eye over the ribbons.
 
-    /// Barely-there lift fill — just enough to raise the current column off the ribbon, ~30% below
-    /// the old frosted value so the glass no longer looks milky and the ribbon reads through it
-    /// with its own contrast/saturation intact. The lens now reads from specular + rim + shadow.
+    /// Barely-there lift fill — just enough to raise the current column off the ribbon without a
+    /// milky veil, so the ribbon reads through it with its own contrast and saturation. The lens
+    /// reads mainly from the specular, rim and shadow.
     static func nowGlassFill(_ scheme: ColorScheme) -> Color {
         Color.white.opacity(scheme == .dark ? 0.08 : 0.10)
     }
@@ -101,7 +101,7 @@ enum Palette {
     }
 
     /// Thin near-white rim tracing the capsule — brightest at the top, present down the sides so
-    /// the marker still reads on any ribbon behind it. Subtler than before now the specular leads.
+    /// the marker still reads on any ribbon behind it. Kept subtle because the specular leads.
     static func nowGlassRim(_ scheme: ColorScheme) -> LinearGradient {
         LinearGradient(
             colors: [.white.opacity(0.8), .white.opacity(0.4)],

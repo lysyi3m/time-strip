@@ -1,7 +1,7 @@
 import XCTest
 @testable import TimeStripUI
 
-/// P8/redesign: invariants of the responsive `RibbonLayout` that keep the ribbon correct across
+/// Invariants of the responsive `RibbonLayout` that keep the ribbon correct across
 /// widget families (Medium — wide/short, Large — ~square) and row counts.
 final class RibbonLayoutTests: XCTestCase {
 
