@@ -32,7 +32,7 @@ contradicts a rule here, the repo-specific rule wins — and say so when you not
 
 ## Stack
 
-- SwiftUI + WidgetKit, macOS 15+, Swift 5.10. No iOS target.
+- SwiftUI + WidgetKit, macOS 26+, Swift 5.10. No iOS target.
 - Four product targets: `TimeStripKit` (`Sources/Kit`, UI-free core), `TimeStripUI`
   (`Sources/UI`, shared SwiftUI views), `TimeStripWidget` (`Sources/Widget`, the extension),
   and `Time Strip` (`Sources/App`, the host app that embeds the widget).
