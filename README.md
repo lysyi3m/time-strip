@@ -48,24 +48,20 @@ drag **Time Strip** into Applications.
 ## Build & run
 
 ```bash
-brew install xcodegen         # one-time
-make generate                 # regenerate "Time Strip.xcodeproj" from project.yml
-open "Time Strip.xcodeproj"   # select a signing team, then press ⌘R
+brew install xcodegen        # one-time
+cp .env.example .env         # one-time; set DEVELOPMENT_TEAM to your Apple Team ID
+make generate                # regenerate "Time Strip.xcodeproj" from project.yml
+open "Time Strip.xcodeproj"  # then press ⌘R
 ```
 
-To install the widget without Xcode, set your Apple Team ID and run `make
-install` (builds signed, copies to `/Applications`, and registers the widget):
+To install the widget without Xcode, run `make install`: it builds signed, copies the app
+to `/Applications`, and registers the widget.
 
-```bash
-export DEVELOPMENT_TEAM=XXXXXXXXXX   # your Apple Developer Team ID
-make install
-```
+Run `make` to list the other tasks (`test`, `build`, `install`, `uninstall`, `dmg`, `clean`).
 
-Run `make` to list all tasks (`generate`, `test`, `build`, `install`, `dmg`,
-`clean`).
-
-The Xcode project is generated from [`project.yml`](project.yml) — it is
-gitignored and must not be hand-edited.
+`Time Strip.xcodeproj` is generated from [`project.yml`](project.yml); it is gitignored and must not
+be hand-edited. `make generate` projects `DEVELOPMENT_TEAM` from `.env` into
+`Config/Local.xcconfig`, so Xcode and `xcodebuild` sign with the same team.
 
 ## How it works
 
