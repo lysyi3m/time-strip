@@ -83,6 +83,9 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
 ## Housekeeping
 
 - **Quote the project path** in every command — `"Time Strip.xcodeproj"` contains a space.
+- **`PRIVACY.md` has a fixed URL.** App Store Connect and Help ▸ Privacy Policy both point at
+  `github.com/lysyi3m/time-strip/blob/master/PRIVACY.md`. Never move or rename it, and keep its
+  claims true of the code.
 - **A widget only registers when the bundles are Team-signed and sandboxed.** An ad-hoc
   signature does not register with `chronod`, and macOS requires the App Sandbox entitlement on
   both the extension and its container app. Never re-sign a built app ad hoc: it drops the
