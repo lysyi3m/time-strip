@@ -104,7 +104,7 @@ struct TimeStripWidget: Widget {
 }
 
 // NOTE: the widget itself CANNOT be previewed in Xcode's canvas on macOS. Verified with the
-// modern `#Preview("…", as: .systemMedium)` macro (Xcode 26.6 / macOS 26.5): the canvas
+// modern `#Preview("…", as: .systemMedium)` macro (Xcode 27.0 / macOS 26.7): the canvas
 // fails with "This platform does not support previewing widgets — No plugin is registered to
 // launch the process type widgetExtension." It's the widgetExtension process type macOS won't
 // launch for previews, so no API avoids it. Preview the widget's content view instead —
