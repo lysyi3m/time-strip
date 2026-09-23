@@ -83,5 +83,5 @@ make test
 
 ## License
 
-MIT — see [LICENSE](LICENSE). The name and the app icon are not covered; see
+The code is MIT — see [LICENSE](LICENSE). The app's name and icon are reserved; see
 [TRADEMARKS.md](TRADEMARKS.md).
