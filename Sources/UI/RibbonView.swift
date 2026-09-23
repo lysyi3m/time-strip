@@ -1,5 +1,6 @@
 import SwiftUI
 import TimeStripKit
+import WidgetKit
 
 /// Dimensions the ribbon derives from the container it must fill. The layout is **responsive**
 /// (fills the widget's content area edge-to-edge) rather than a fixed design scaled to fit — so it
@@ -148,6 +149,8 @@ public struct RibbonView: View {
                 x: layout.railWidth + CGFloat(nowColumn) * layout.slotWidth,
                 y: -layout.nowFrameBreathe
             )
+            // In the accented mode the marker takes the accent tint, so *now* stands apart.
+            .widgetAccentable()
             .allowsHitTesting(false)
     }
 }
@@ -161,6 +164,9 @@ private struct CityRow: View {
     let nowColumnIndex: Int
     let layout: RibbonLayout
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
+    private var railLabel: Color { renderingMode == .fullColor ? Palette.railLabel(scheme) : .white }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -171,11 +177,11 @@ private struct CityRow: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .truncationMode(.tail)
-                    .foregroundStyle(Palette.railLabel(scheme))
+                    .foregroundStyle(railLabel)
                 Text(RibbonFormatter.zoneTag(for: row.city, at: now))
                     .font(.system(size: layout.zoneFont, weight: .regular))
                     .tracking(0.1)
-                    .foregroundStyle(Palette.railLabel(scheme).opacity(0.35))
+                    .foregroundStyle(railLabel.opacity(0.35))
             }
             .padding(.trailing, layout.railGap)   // guaranteed gap before the ribbon
             .frame(width: layout.railWidth, height: layout.rowHeight, alignment: .leading)
@@ -203,9 +209,13 @@ private struct RibbonRow: View {
     let nowColumnIndex: Int
     let layout: RibbonLayout
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     private var slots: [Slot] { row.slots }
     private var width: CGFloat { layout.ribbonWidth }
+    /// Vibrant (the macOS desktop) and accented keep opacity but not color, so the ribbon swaps
+    /// its color ramp for an opacity ramp there. See `Palette.tintedOpacity(forHour:_:)`.
+    private var tinted: Bool { renderingMode != .fullColor }
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -215,16 +225,24 @@ private struct RibbonRow: View {
             Rectangle()
                 .fill(bandGradient)
                 .frame(width: width, height: layout.rowHeight)
-                .overlay(materialShading)
+                .overlay { if !tinted { materialShading } }
                 .mask(runMask)
                 // Ambient (not drop) shadow so each ribbon lifts just off the material.
-                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 1)
+                .shadow(color: .black.opacity(tinted ? 0 : 0.03), radius: 6, x: 0, y: 1)
 
             ForEach(slots.indices, id: \.self) { i in
                 slotContent(i)
             }
         }
         .frame(width: width, height: layout.rowHeight)
+        // Confines the tinted modes' cut-out numbers (`.destinationOut`) to this row's own cells.
+        .compositingGroup()
+    }
+
+    private func cellColor(_ slot: Slot) -> Color {
+        tinted
+            ? .white.opacity(Palette.tintedOpacity(forHour: clockHour(slot), scheme))
+            : Palette.color(forHour: clockHour(slot), scheme)
     }
 
     /// One shape per contiguous day-run; together they mask the row into a single continuous bar.
@@ -302,8 +320,8 @@ private struct RibbonRow: View {
             return LinearGradient(colors: [.clear], startPoint: .leading, endPoint: .trailing)
         }
         let n = slots.count
-        let firstColor = Palette.color(forHour: clockHour(first), scheme)
-        let lastColor = Palette.color(forHour: clockHour(last), scheme)
+        let firstColor = cellColor(first)
+        let lastColor = cellColor(last)
         let cap = min(5 / max(width, 1), CGFloat(0.5 / Double(n)))  // ~5pt, never past the first half-slot
         var stops: [Gradient.Stop] = [
             Gradient.Stop(color: firstColor, location: 0),
@@ -311,7 +329,7 @@ private struct RibbonRow: View {
         ]
         for i in slots.indices {
             let location = (Double(i) + 0.5) / Double(n)
-            stops.append(Gradient.Stop(color: Palette.color(forHour: clockHour(slots[i]), scheme), location: location))
+            stops.append(Gradient.Stop(color: cellColor(slots[i]), location: location))
         }
         stops.append(Gradient.Stop(color: lastColor, location: 1 - cap))
         stops.append(Gradient.Stop(color: lastColor, location: 1))
@@ -324,7 +342,8 @@ private struct RibbonRow: View {
         let label = RibbonFormatter.slotLabel(
             for: slot, timeZone: row.city.timeZone, locale: locale, is12h: is12h
         )
-        let numberColor = Palette.number(forHour: clockHour(slot), scheme)
+        let numberColor = tinted ? .white : Palette.number(forHour: clockHour(slot), scheme)
+        let cutout = tinted && Palette.tintedNumberIsCutout(forHour: clockHour(slot), scheme)
         let isNow = i == nowColumnIndex
         // Per-cell layout: a bare number centers vertically; a cell with a secondary (meridiem or
         // weekday) is a two-line group, centered. The now-column number is bolded so the current
@@ -344,6 +363,7 @@ private struct RibbonRow: View {
             }
         }
         .foregroundStyle(numberColor)
+        .blendMode(cutout ? .destinationOut : .normal)
         .frame(width: layout.slotWidth, height: layout.rowHeight)
         .offset(x: CGFloat(i) * layout.slotWidth, y: 0)
     }

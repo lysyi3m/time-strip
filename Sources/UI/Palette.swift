@@ -6,8 +6,11 @@ import SwiftUI
 /// cool night → purple dawn → bright near-neutral day (peak ≈ noon) → warm amber dusk → back
 /// to night. The color is a **continuous** function of the local clock hour (interpolated
 /// between control points), so every column differs slightly and a row reads as one smooth
-/// gradient — not flat per-band blocks. Brightness tracks time-of-day, so shading survives
-/// desaturation / tinted rendering.
+/// gradient — not flat per-band blocks.
+///
+/// The tinted rendering modes (vibrant on the macOS desktop, accented) discard color and flatten
+/// opaque fills to one tone, so brightness alone does not survive them. There the ribbon uses
+/// `tintedOpacity(forHour:_:)` instead: the same curve, carried as opacity.
 enum Palette {
 
     private struct Ramp { let points: [(hour: Double, rgb: RGB)] }
@@ -66,9 +69,30 @@ enum Palette {
     /// Number color chosen for contrast against the cell's own luminance, so it stays legible
     /// over both bright (day) and dark (night) cells — flips automatically along the ramp.
     static func number(forHour hour: Double, _ scheme: ColorScheme) -> Color {
-        let bg = rgb(forHour: hour, scheme)
-        let luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b
-        return luminance > 0.5 ? Color(hex: 0x1D1D1F) : Color(hex: 0xF4F6FB)
+        rgb(forHour: hour, scheme).luminance > 0.5 ? Color(hex: 0x1D1D1F) : Color(hex: 0xF4F6FB)
+    }
+
+    // MARK: tinted rendering (vibrant, accented)
+
+    private static let tintedOpacityRange: ClosedRange<Double> = 0.05...0.85
+
+    /// Cell opacity for the tinted rendering modes: the ramp's luminance, normalized to the ramp's
+    /// own darkest and brightest points, mapped onto `tintedOpacityRange`. Night is nearly clear,
+    /// day is strong, and the curve between them matches the full-color ramp.
+    static func tintedOpacity(forHour hour: Double, _ scheme: ColorScheme) -> Double {
+        let points = (scheme == .dark ? darkRamp : lightRamp).points
+        // Luminance is linear in RGB, so the ramp's extremes sit on its control points.
+        let levels = points.map(\.rgb.luminance)
+        let lo = levels.min()!, hi = levels.max()!
+        let t = (rgb(forHour: hour, scheme).luminance - lo) / max(hi - lo, .ulpOfOne)
+        let range = tintedOpacityRange
+        return range.lowerBound + min(max(t, 0), 1) * (range.upperBound - range.lowerBound)
+    }
+
+    /// In the tinted modes a number is cut out of a strong cell and drawn solid on a faint one,
+    /// so it reads against either.
+    static func tintedNumberIsCutout(forHour hour: Double, _ scheme: ColorScheme) -> Bool {
+        tintedOpacity(forHour: hour, scheme) > 0.4
     }
 
     /// Rail text (city name / zone), on the widget background rather than a gradient.
@@ -130,6 +154,9 @@ struct RGB {
     }
 
     var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
+
+    /// Relative luminance (Rec. 709 weights on the sRGB components).
+    var luminance: Double { 0.2126 * r + 0.7152 * g + 0.0722 * b }
 }
 
 public extension Color {

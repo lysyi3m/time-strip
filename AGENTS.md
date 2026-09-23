@@ -75,6 +75,10 @@ These come from how the widget must render and stay correct. Do not "simplify" t
    the cells.
 7. **Shading is a pure function of local clock hour.** The engine carries no solar or
    coordinate data, and the shading must stay readable from lightness alone, in light and dark.
+8. **Every widget rendering mode is readable.** The macOS desktop draws widgets in the vibrant
+   mode, which discards color and flattens opaque fills to one tone. In the vibrant and accented
+   modes the shading is carried as opacity and hour numbers are cut out of bright cells. The
+   widget canvas cannot preview these modes; check them on the desktop after `make install`.
 
 ## Secrets
 
