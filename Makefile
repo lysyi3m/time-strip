@@ -74,7 +74,7 @@ install: generate ## Re-deploy to /Applications (needs one prior Xcode ⌘R to p
 # extension must keep its App Sandbox signature, so we package the SIGNED build as-is (no ad-hoc
 # re-sign, which would strip entitlements). IMPORTANT: this .dmg runs on Macs registered to your
 # dev account; distributing to *other* users needs Developer ID signing + notarization (a paid
-# Apple Developer account) — otherwise the widget won't register on their Mac. See README.
+# Apple Developer account) — otherwise the widget won't register on their Mac.
 dmg: generate ## Package a signed .dmg (works on your Mac; broad distribution needs notarization)
 	$(require-team)
 	@command -v create-dmg >/dev/null || { echo "Install create-dmg: brew install create-dmg"; exit 1; }

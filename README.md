@@ -21,16 +21,6 @@
   <img src="assets/screenshot-dark.png" alt="Time Strip widget, dark mode" width="49%">
 </p>
 
-## Download
-
-Download the latest `.dmg` from the
-[**Releases**](https://github.com/lysyi3m/time-strip/releases/latest) page and
-drag **Time Strip** into Applications.
-
-> **Note:** the app is not yet notarized, and macOS only registers a widget from
-> a notarized app — so a downloaded build's widget may not appear in **Edit
-> Widgets**. Until then, **build it yourself** (below).
-
 ## Features
 
 - **Two to seven time zones**, each a horizontal day/night-shaded ribbon.
@@ -81,6 +71,7 @@ fully responsive, filling whatever bounds each widget family provides.
 | `Sources/Widget/` | WidgetKit extension: timeline provider + `AppIntent` configuration |
 | `Sources/App/` | Minimal host app (onboarding window) |
 | `Tests/` | Unit tests (`@testable import TimeStripKit` / `TimeStripUI`) |
+| `Config/` | `Base.xcconfig`; `make generate` writes the rest (git-ignored) |
 
 ## Testing
 
