@@ -218,6 +218,16 @@ private struct RibbonRow: View {
     private var tinted: Bool { renderingMode != .fullColor }
 
     var body: some View {
+        // The group confines the tinted modes' cut-out numbers (`.destinationOut`) to this row's
+        // own cells. Full color needs no group, so it keeps its original render path.
+        if tinted {
+            band.compositingGroup()
+        } else {
+            band
+        }
+    }
+
+    private var band: some View {
         ZStack(alignment: .leading) {
             // One continuous band gradient, masked so only the row's outer ends are rounded.
             // The mask partitions contiguous day runs without inserting any geometry or gap —
@@ -235,8 +245,6 @@ private struct RibbonRow: View {
             }
         }
         .frame(width: width, height: layout.rowHeight)
-        // Confines the tinted modes' cut-out numbers (`.destinationOut`) to this row's own cells.
-        .compositingGroup()
     }
 
     private func cellColor(_ slot: Slot) -> Color {

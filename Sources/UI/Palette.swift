@@ -75,15 +75,20 @@ enum Palette {
     // MARK: tinted rendering (vibrant, accented)
 
     private static let tintedOpacityRange: ClosedRange<Double> = 0.05...0.85
+    private static let lightLuminanceRange = luminanceRange(of: lightRamp)
+    private static let darkLuminanceRange = luminanceRange(of: darkRamp)
+
+    /// Luminance is linear in RGB, so a ramp's extremes sit on its control points.
+    private static func luminanceRange(of ramp: Ramp) -> (lo: Double, hi: Double) {
+        let levels = ramp.points.map(\.rgb.luminance)
+        return (levels.min()!, levels.max()!)
+    }
 
     /// Cell opacity for the tinted rendering modes: the ramp's luminance, normalized to the ramp's
     /// own darkest and brightest points, mapped onto `tintedOpacityRange`. Night is nearly clear,
     /// day is strong, and the curve between them matches the full-color ramp.
     static func tintedOpacity(forHour hour: Double, _ scheme: ColorScheme) -> Double {
-        let points = (scheme == .dark ? darkRamp : lightRamp).points
-        // Luminance is linear in RGB, so the ramp's extremes sit on its control points.
-        let levels = points.map(\.rgb.luminance)
-        let lo = levels.min()!, hi = levels.max()!
+        let (lo, hi) = scheme == .dark ? darkLuminanceRange : lightLuminanceRange
         let t = (rgb(forHour: hour, scheme).luminance - lo) / max(hi - lo, .ulpOfOne)
         let range = tintedOpacityRange
         return range.lowerBound + min(max(t, 0), 1) * (range.upperBound - range.lowerBound)
