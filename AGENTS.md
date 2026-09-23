@@ -83,6 +83,9 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
 ## Housekeeping
 
 - **Quote the project path** in every command — `"Time Strip.xcodeproj"` contains a space.
+- **The App Store name is `Time Strip: Time Zones`.** "Time Strip" alone is taken in App
+  Store Connect. The app, its display name and the slug stay `Time Strip` /
+  `time-strip`; only the store listing carries the suffix.
 - **`PRIVACY.md` has a fixed URL.** App Store Connect and Help ▸ Privacy Policy both point at
   `github.com/lysyi3m/time-strip/blob/master/PRIVACY.md`. Never move or rename it, and keep its
   claims true of the code.
