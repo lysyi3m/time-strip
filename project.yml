@@ -71,6 +71,10 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Time Strip
         INFOPLIST_KEY_LSUIElement: "NO"
         INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Emil Kashkevich · MIT License"
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        # The app uses no encryption, so App Store Connect does not ask the export-compliance
+        # questions on each upload.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: "NO"
         # macOS requires WidgetKit extensions to be sandboxed, and an extension's sandbox must be
         # matched by its container app. (No sandbox = the widget never registers with chronod.)
         ENABLE_APP_SANDBOX: "YES"

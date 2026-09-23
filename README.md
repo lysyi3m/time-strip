@@ -81,6 +81,10 @@ No setup required — the tests build their own fixtures and pull zones from the
 make test
 ```
 
+## Privacy
+
+Time Strip collects no data and has no network access — see [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 The code is MIT — see [LICENSE](LICENSE). The app's name and icon are reserved; see
