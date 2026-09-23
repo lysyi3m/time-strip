@@ -5,7 +5,7 @@ PROJECT    := Time Strip.xcodeproj
 SCHEME     := Time Strip
 APP        := build/Build/Products/Release/$(SCHEME).app
 INSTALLED  := /Applications/$(SCHEME).app
-WIDGET_ID  := com.mlkshkvch.timestrip.widget
+WIDGET_ID  := com.mlkshkvch.time-strip.widget
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 LOCAL_XCCONFIG := Config/Local.xcconfig
