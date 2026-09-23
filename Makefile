@@ -5,19 +5,18 @@ PROJECT    := Time Strip.xcodeproj
 SCHEME     := Time Strip
 APP        := build/Build/Products/Release/$(SCHEME).app
 INSTALLED  := /Applications/$(SCHEME).app
-DMG        := $(SCHEME).dmg
 WIDGET_ID  := com.mlkshkvch.timestrip.widget
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 LOCAL_XCCONFIG := Config/Local.xcconfig
 TEAM_SETTING   := ^DEVELOPMENT_TEAM = [A-Z0-9]{10}$$
 
-# Team-signed builds (install/dmg) need your Apple Developer Team ID, which `local-config`
-# projects from .env. Fail early rather than produce an ad-hoc build the widget daemon ignores.
+# `make install` needs a Team-signed build, and so the Team ID that `local-config` projects from
+# .env. Fail early rather than produce an ad-hoc build the widget daemon ignores.
 require-team = @grep -qsE '$(TEAM_SETTING)' $(LOCAL_XCCONFIG) || { echo "✗ Set DEVELOPMENT_TEAM in .env (copy .env.example)"; exit 1; }
 
 .DEFAULT_GOAL := help
-.PHONY: help generate local-config test build install uninstall dmg clean
+.PHONY: help generate local-config test build install uninstall clean
 
 help: ## List available targets
 	@grep -E '^[a-z][a-zA-Z-]*:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## / — /' | sort
@@ -69,22 +68,6 @@ install: generate ## Re-deploy to /Applications (needs one prior Xcode ⌘R to p
 	@pluginkit -mv | grep -iq "$(WIDGET_ID)" \
 		&& echo "✅ Widget registered — right-click the desktop → Edit Widgets → search '$(SCHEME)'." \
 		|| echo "⚠️  Not registered yet — reboot, then re-run 'make install'."
-
-# Package the Team-signed, sandboxed Release build into a .dmg. Unlike a plain app, the widget
-# extension must keep its App Sandbox signature, so we package the SIGNED build as-is (no ad-hoc
-# re-sign, which would strip entitlements). IMPORTANT: this .dmg runs on Macs registered to your
-# dev account; distributing to *other* users needs Developer ID signing + notarization (a paid
-# Apple Developer account) — otherwise the widget won't register on their Mac.
-dmg: generate ## Package a signed .dmg (works on your Mac; broad distribution needs notarization)
-	$(require-team)
-	@command -v create-dmg >/dev/null || { echo "Install create-dmg: brew install create-dmg"; exit 1; }
-	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
-		-derivedDataPath build -allowProvisioningUpdates clean build
-	@codesign -dvv "$(APP)" 2>&1 | grep -q adhoc \
-		&& { echo "✗ built ad-hoc — is DEVELOPMENT_TEAM in .env correct?"; exit 1; } || echo "✓ Team-signed"
-	rm -f "$(DMG)"
-	create-dmg --volname "$(SCHEME)" --window-size 500 320 --icon-size 100 \
-		--icon "$(SCHEME).app" 130 150 --app-drop-link 370 150 "$(DMG)" "$(APP)"
 
 uninstall: ## Quit and remove the installed app from /Applications
 	-osascript -e 'quit app "$(SCHEME)"' 2>/dev/null || true

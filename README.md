@@ -47,7 +47,7 @@ open "Time Strip.xcodeproj"  # then press ⌘R
 To install the widget without Xcode, run `make install`: it builds signed, copies the app
 to `/Applications`, and registers the widget.
 
-Run `make` to list the other tasks (`test`, `build`, `install`, `uninstall`, `dmg`, `clean`).
+Run `make` to list the other tasks (`test`, `build`, `install`, `uninstall`, `clean`).
 
 `Time Strip.xcodeproj` is generated from [`project.yml`](project.yml); it is gitignored and must not
 be hand-edited. `make generate` projects `DEVELOPMENT_TEAM` from `.env` into

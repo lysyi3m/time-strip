@@ -81,8 +81,8 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
 - **Quote the project path** in every command — `"Time Strip.xcodeproj"` contains a space.
 - **A widget only registers when the bundles are Team-signed and sandboxed.** An ad-hoc
   signature does not register with `chronod`, and macOS requires the App Sandbox entitlement on
-  both the extension and its container app. This is why `make dmg` packages the signed build
-  as-is rather than re-signing.
+  both the extension and its container app. Never re-sign a built app ad hoc: it drops the
+  entitlements.
 - **`make install` needs one prior Xcode ⌘R.** With a free or personal team, the development
   provisioning profile that activates the widget is only created by running from Xcode once.
   After that, `make install` is the fast way to push rebuilds.
