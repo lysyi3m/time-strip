@@ -4,6 +4,7 @@ options:
   bundleIdPrefix: com.mlkshkvch.time-strip
   deploymentTarget:
     macOS: "26.0"
+    iOS: "26.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -27,7 +28,8 @@ targets:
   # NO SwiftUI / WidgetKit / AppKit imports in Sources/Kit.
   TimeStripKit:
     type: framework
-    platform: macOS
+    platform: auto
+    supportedDestinations: [macOS, iOS]
     sources:
       - Sources/Kit
     settings:
@@ -41,7 +43,8 @@ targets:
   # targets can't be previewed on macOS). Imports TimeStripKit; used by app + widget.
   TimeStripUI:
     type: framework
-    platform: macOS
+    platform: auto
+    supportedDestinations: [macOS, iOS]
     sources:
       - Sources/UI
     dependencies:
@@ -55,7 +58,8 @@ targets:
   # ── Minimal host app (onboarding window); embeds the widget extension ──────
   Time Strip:
     type: application
-    platform: macOS
+    platform: auto
+    supportedDestinations: [macOS, iOS]
     sources:
       - Sources/App
     dependencies:
@@ -70,6 +74,11 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Time Strip
         INFOPLIST_KEY_LSUIElement: "NO"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: >-
+          UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown
+          UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Emil Kashkevich · MIT License"
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         # The app uses no encryption, so App Store Connect does not ask the export-compliance
@@ -77,12 +86,14 @@ targets:
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: "NO"
         # macOS requires WidgetKit extensions to be sandboxed, and an extension's sandbox must be
         # matched by its container app. (No sandbox = the widget never registers with chronod.)
-        ENABLE_APP_SANDBOX: "YES"
+        # iOS sandboxes every app, so the entitlement is macOS-only.
+        "ENABLE_APP_SANDBOX[sdk=macosx*]": "YES"
 
   # ── WidgetKit extension: views, timeline provider, configuration intent ────
   TimeStripWidget:
     type: app-extension
-    platform: macOS
+    platform: auto
+    supportedDestinations: [macOS, iOS]
     sources:
       - Sources/Widget
     dependencies:
@@ -102,7 +113,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.time-strip.widget
         # Mandatory for a macOS widget extension — without the App Sandbox entitlement the
         # system won't load it into the widget gallery.
-        ENABLE_APP_SANDBOX: "YES"
+        "ENABLE_APP_SANDBOX[sdk=macosx*]": "YES"
 
   # ── Unit tests for the core. Not app-hosted → runner isn't sandboxed, so it
   #    can read fixtures directly. @testable import TimeStripKit. ─────────────

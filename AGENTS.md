@@ -46,7 +46,9 @@ contradicts a rule here, the repo-specific rule wins — and say so when you not
 
 ## Stack
 
-- SwiftUI + WidgetKit. No iOS target.
+- SwiftUI + WidgetKit. macOS and iOS: every product target is multiplatform
+  (`supportedDestinations` in `project.yml`). Platform-specific code sits behind `#if os(macOS)`
+  in the app target only. Test bundles run on macOS.
 - Four product targets: `TimeStripKit` (`Sources/Kit`, UI-free core), `TimeStripUI`
   (`Sources/UI`, shared SwiftUI views), `TimeStripWidget` (`Sources/Widget`, the extension),
   and `Time Strip` (`Sources/App`, the host app that embeds the widget).
@@ -105,6 +107,8 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
   signature does not register with `chronod`, and macOS requires the App Sandbox entitlement on
   both the extension and its container app. Never re-sign a built app ad hoc: it drops the
   entitlements.
+- **`make run-ios` signs ad hoc.** An unsigned simulator build lists the widget, but WidgetKit
+  cannot resolve its configuration intent and the widget never renders.
 - **`make install` needs one prior Xcode ⌘R.** With a free or personal team, the development
   provisioning profile that activates the widget is only created by running from Xcode once.
   After that, `make install` is the fast way to push rebuilds.

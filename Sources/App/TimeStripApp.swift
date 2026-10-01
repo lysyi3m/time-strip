@@ -1,9 +1,14 @@
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
+
+let privacyPolicyURL = URL(string: "https://github.com/lysyi3m/time-strip/blob/master/PRIVACY.md")!
 
 @main
 struct TimeStripApp: App {
     var body: some Scene {
+        #if os(macOS)
         Window("Time Strip", id: "main") {
             OnboardingView()
         }
@@ -17,11 +22,18 @@ struct TimeStripApp: App {
             // Replacing the group drops the default Help item on purpose: with no help book, it
             // only shows "Help isn't available for Time Strip."
             CommandGroup(replacing: .help) {
-                Link("Privacy Policy", destination: URL(string: "https://github.com/lysyi3m/time-strip/blob/master/PRIVACY.md")!)
+                Link("Privacy Policy", destination: privacyPolicyURL)
             }
         }
+        #else
+        WindowGroup {
+            OnboardingView()
+        }
+        #endif
     }
 }
+
+#if os(macOS)
 
 /// Standard About panel (icon / name / version / copyright) plus a centered credits block with a
 /// clickable link to the project repo.
@@ -48,3 +60,4 @@ private func showAboutPanel() {
     NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     NSApp.activate(ignoringOtherApps: true)
 }
+#endif
