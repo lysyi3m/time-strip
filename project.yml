@@ -5,6 +5,9 @@ options:
   deploymentTarget:
     macOS: "26.0"
     iOS: "26.0"
+  # Sets LastUpgradeCheck, so Xcode stops offering its "recommended settings" upgrade. Those
+  # settings live in this file instead: the generated project is overwritten on every generate.
+  xcodeVersion: "27.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -17,6 +20,9 @@ settings:
     MARKETING_VERSION: "1.1"
     CURRENT_PROJECT_VERSION: "2"
     SWIFT_VERSION: "6.0"
+    DEAD_CODE_STRIPPING: "YES"
+    ENABLE_USER_SCRIPT_SANDBOXING: "YES"
+    STRING_CATALOG_GENERATE_SYMBOLS: "YES"
     # CLI/CI builds pass CODE_SIGNING_ALLOWED=NO. For running the app + widget locally the bundles
     # must be Team-signed (ad-hoc widgets don't register with macOS's widget daemon). The Team ID
     # is not committed: it comes from .env through Config/Local.xcconfig (see `make local-config`).
@@ -37,6 +43,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.time-strip.kit
         GENERATE_INFOPLIST_FILE: "YES"
         DEFINES_MODULE: "YES"
+        ENABLE_MODULE_VERIFIER: "YES"
 
   # ── Shared SwiftUI views (ribbon, palette, fixtures) ───────────────────────
   # Extracted from the widget so macOS can host canvas previews (widget-extension
@@ -54,6 +61,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.mlkshkvch.time-strip.ui
         GENERATE_INFOPLIST_FILE: "YES"
         DEFINES_MODULE: "YES"
+        ENABLE_MODULE_VERIFIER: "YES"
 
   # ── Minimal host app (onboarding window); embeds the widget extension ──────
   Time Strip:
@@ -109,6 +117,9 @@ targets:
       path: Config/Widget-Info.plist
       properties:
         CFBundleDisplayName: Time Strip
+        # XcodeGen otherwise writes a fixed 1.0 (1); the extension must match its container app.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
