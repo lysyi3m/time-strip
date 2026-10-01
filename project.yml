@@ -109,6 +109,9 @@ targets:
       path: Config/Widget-Info.plist
       properties:
         CFBundleDisplayName: Time Strip
+        # XcodeGen otherwise writes a fixed 1.0 (1); the extension must match its container app.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
