@@ -88,6 +88,9 @@ targets:
         # matched by its container app. (No sandbox = the widget never registers with chronod.)
         # iOS sandboxes every app, so the entitlement is macOS-only.
         "ENABLE_APP_SANDBOX[sdk=macosx*]": "YES"
+        # A multiplatform target gets the iOS runpath; a macOS app keeps frameworks in
+        # Contents/Frameworks, one level above the executable.
+        "LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]": "$(inherited) @executable_path/../Frameworks"
 
   # ── WidgetKit extension: views, timeline provider, configuration intent ────
   TimeStripWidget:
@@ -114,6 +117,8 @@ targets:
         # Mandatory for a macOS widget extension — without the App Sandbox entitlement the
         # system won't load it into the widget gallery.
         "ENABLE_APP_SANDBOX[sdk=macosx*]": "YES"
+        # The macOS appex sits in Contents/PlugIns; its frameworks are the container app's.
+        "LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]": "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
 
   # ── Unit tests for the core. Not app-hosted → runner isn't sandboxed, so it
   #    can read fixtures directly. @testable import TimeStripKit. ─────────────
