@@ -5,9 +5,9 @@
 <h1 align="center">Time Strip</h1>
 
 <p align="center">
-  A macOS widget that lines several time zones up on one grid, so a single
-  marker reads the same instant in every city. Native macOS, no third-party
-  dependencies.
+  A macOS and iOS widget that lines several time zones up on one grid, so a
+  single marker reads the same instant in every city. Native SwiftUI and
+  WidgetKit, no third-party dependencies.
 </p>
 
 <p align="center">
@@ -32,13 +32,13 @@
 - **Two to seven time zones**, each a horizontal day/night-shaded ribbon.
 - **Absolute-time alignment** — every column is one instant, so *now* is a single vertical line across every city.
 - **Medium and Large** sizes — up to four cities on Medium, seven on Large.
-- **Configure on the widget** — right-click ▸ *Edit Widget* to choose cities and drag to reorder.
+- **Configure on the widget** — right-click (Mac) or touch and hold (iPhone, iPad) ▸ *Edit Widget* to choose cities and drag to reorder.
 - **12- or 24-hour** clock, following your system setting.
 - **Light and dark**, with continuous time-of-day shading and the current hour marked.
 
 ## Requirements
 
-- macOS 26 or later
+- macOS 26 or later, or iOS 26 or later
 - Xcode 26 or later and XcodeGen, to build
 
 ## Build & run
@@ -53,7 +53,10 @@ open "Time Strip.xcodeproj"  # then press ⌘R
 To install the widget without Xcode, run `make install`: it builds signed, copies the app
 to `/Applications`, and registers the widget.
 
-Run `make` to list the other tasks (`test`, `build`, `install`, `uninstall`, `clean`).
+To try the iOS widget, run `make run-ios` (or `make run-ios SIM="iPad Pro 13"`): it builds for the
+Simulator, installs the app and launches it. No Team is needed.
+
+Run `make` to list the other tasks (`test`, `build`, `build-ios`, `install`, `uninstall`, `clean`).
 
 `Time Strip.xcodeproj` is generated from [`project.yml`](project.yml); it is gitignored and must not
 be hand-edited. `make generate` projects `DEVELOPMENT_TEAM` from `.env` into

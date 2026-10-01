@@ -107,8 +107,6 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
   signature does not register with `chronod`, and macOS requires the App Sandbox entitlement on
   both the extension and its container app. Never re-sign a built app ad hoc: it drops the
   entitlements.
-- **`make run-ios` signs ad hoc.** An unsigned simulator build lists the widget, but WidgetKit
-  cannot resolve its configuration intent and the widget never renders.
 - **`make install` needs one prior Xcode ⌘R.** With a free or personal team, the development
   provisioning profile that activates the widget is only created by running from Xcode once.
   After that, `make install` is the fast way to push rebuilds.
