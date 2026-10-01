@@ -17,15 +17,37 @@ struct OnboardingView: View {
     private var dark: Bool { scheme == .dark }
 
     var body: some View {
+        #if os(macOS)
+        content
+            .padding(30)
+            .frame(width: 560)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(canvas)
+        #else
+        // iOS has no Help menu, so the privacy policy link App Review requires sits on screen.
+        // The minimum height centers the content when it fits (iPad) and lets it scroll when not.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 22) {
+                    content
+                    Link("Privacy Policy", destination: privacyPolicyURL)
+                        .font(.system(size: 13))
+                }
+                .padding(20)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+        }
+        .background(canvas)
+        #endif
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 22) {
             header
             hero
             stepsCard
         }
-        .padding(30)
-        .frame(width: 560)
-        .fixedSize(horizontal: false, vertical: true)
-        .background(canvas)
     }
 
     private var canvas: some View {
@@ -56,7 +78,8 @@ struct OnboardingView: View {
     private var hero: some View {
         WidgetRibbonView(snapshot: snapshot, maxRows: 4)
             .padding(14)
-            .frame(width: 348, height: 164)   // ≈ the wide, short .systemMedium tile
+            .aspectRatio(348 / 164, contentMode: .fit)   // ≈ the wide, short .systemMedium tile
+            .frame(maxWidth: 348)
             .background(WidgetBackground(scheme: scheme))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
@@ -64,7 +87,7 @@ struct OnboardingView: View {
                     .strokeBorder(.white.opacity(dark ? 0.10 : 0.5), lineWidth: 1)
             )
             .shadow(color: .black.opacity(dark ? 0.55 : 0.22), radius: 18, x: 0, y: 10)
-            .padding(26)
+            .padding(heroInset)
             .background(
                 RoundedRectangle(cornerRadius: 26, style: .continuous).fill(wallpaper)
             )
@@ -74,6 +97,12 @@ struct OnboardingView: View {
             )
             .frame(maxWidth: .infinity)   // center the framed widget in the column
     }
+
+    #if os(macOS)
+    private let heroInset: CGFloat = 26
+    #else
+    private let heroInset: CGFloat = 16
+    #endif
 
     /// A soft desktop-wallpaper gradient (muted, echoing the ribbon palette) for the widget to
     /// float on.
@@ -90,9 +119,15 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Add the widget")
                 .font(.system(size: 15, weight: .semibold))
+            #if os(macOS)
             Step(number: 1, text: "Open **Notification Center** (or right-click the desktop) and click **Edit Widgets**.")
             Step(number: 2, text: "Find **Time Strip** and add it at the **Medium** size.")
             Step(number: 3, text: "Right-click the widget, choose **Edit Widget**, and pick your cities.")
+            #else
+            Step(number: 1, text: "Touch and hold an empty area of the **Home Screen**, then tap **Edit** and **Add Widget**.")
+            Step(number: 2, text: "Find **Time Strip** and add it at the **Medium** size.")
+            Step(number: 3, text: "Touch and hold the widget, choose **Edit Widget**, and pick your cities.")
+            #endif
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -6,6 +6,8 @@ SCHEME     := Time Strip
 APP        := build/Build/Products/Release/$(SCHEME).app
 INSTALLED  := /Applications/$(SCHEME).app
 WIDGET_ID  := com.mlkshkvch.time-strip.widget
+SIM        ?= iPhone 17
+SIM_APP    := build/Build/Products/Debug-iphonesimulator/$(SCHEME).app
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 LOCAL_XCCONFIG := Config/Local.xcconfig
@@ -16,7 +18,7 @@ TEAM_SETTING   := ^DEVELOPMENT_TEAM = [A-Z0-9]{10}$$
 require-team = @grep -qsE '$(TEAM_SETTING)' $(LOCAL_XCCONFIG) || { echo "✗ Set DEVELOPMENT_TEAM in .env (copy .env.example)"; exit 1; }
 
 .DEFAULT_GOAL := help
-.PHONY: help generate local-config test build install uninstall clean
+.PHONY: help generate local-config test build build-ios run-ios install uninstall clean
 
 help: ## List available targets
 	@grep -E '^[a-z][a-zA-Z-]*:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## / — /' | sort
@@ -46,6 +48,21 @@ test: generate ## Run the unit tests
 build: generate ## Build a Release .app (compile check; unsigned)
 	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
 		-derivedDataPath build CODE_SIGNING_ALLOWED=NO clean build
+
+build-ios: generate ## Build a Release iOS app (compile check; unsigned)
+	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Release \
+		-destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO clean build
+
+# Ad-hoc signed, no Team needed. An unsigned build installs and lists the widget, but the
+# App Intents runtime cannot resolve its configuration intent, so the widget never renders.
+run-ios: generate ## Build and launch on the iOS Simulator (SIM="iPhone 17")
+	xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration Debug \
+		-destination 'platform=iOS Simulator,name=$(SIM)' -derivedDataPath build \
+		CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
+	xcrun simctl boot "$(SIM)" 2>/dev/null || true
+	open -a Simulator
+	xcrun simctl install "$(SIM)" "$(SIM_APP)"
+	xcrun simctl launch "$(SIM)" com.mlkshkvch.time-strip
 
 # Re-deploy a signed build to /Applications and refresh the widget daemon. NOTE: macOS only
 # *activates* a development-signed widget once a dev provisioning profile exists for it — with a

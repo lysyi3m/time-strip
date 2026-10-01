@@ -46,7 +46,9 @@ contradicts a rule here, the repo-specific rule wins — and say so when you not
 
 ## Stack
 
-- SwiftUI + WidgetKit. No iOS target.
+- SwiftUI + WidgetKit. macOS and iOS: every product target is multiplatform
+  (`supportedDestinations` in `project.yml`). Platform-specific code sits behind `#if os(macOS)`
+  in the app target only. Test bundles run on macOS.
 - Four product targets: `TimeStripKit` (`Sources/Kit`, UI-free core), `TimeStripUI`
   (`Sources/UI`, shared SwiftUI views), `TimeStripWidget` (`Sources/Widget`, the extension),
   and `Time Strip` (`Sources/App`, the host app that embeds the widget).
