@@ -25,15 +25,18 @@ struct OnboardingView: View {
             .background(canvas)
         #else
         // iOS has no Help menu, so the privacy policy link App Review requires sits on screen.
-        ScrollView {
-            VStack(spacing: 22) {
-                content
-                Link("Privacy Policy", destination: privacyPolicyURL)
-                    .font(.system(size: 13))
+        // The minimum height centers the content when it fits (iPad) and lets it scroll when not.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 22) {
+                    content
+                    Link("Privacy Policy", destination: privacyPolicyURL)
+                        .font(.system(size: 13))
+                }
+                .padding(20)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
-            .padding(20)
-            .frame(maxWidth: 560)
-            .frame(maxWidth: .infinity)
         }
         .background(canvas)
         #endif
