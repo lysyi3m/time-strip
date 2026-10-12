@@ -107,6 +107,14 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
 
 ## Housekeeping
 
+- **Debug is the dev app; Release is the App Store app.** Debug builds
+  `com.mlkshkvch.time-strip.dev` with the widget `com.mlkshkvch.time-strip.dev.widget`, version
+  `<version>-dev`, with `AppIcon-Dev`, so its sandbox container, widget and install stay apart
+  from the App Store app. Use Debug for every build, test, run, simulator install and
+  `make install`, which installs to `~/Applications`, because `/Applications/Time Strip.app` is
+  the App Store app. Release builds only by Product ▸ Archive, which only the owner runs; a
+  pre-build script fails any other Release build. After a change to `AppIcon`, run
+  `Scripts/make-dev-icon.swift`.
 - **Quote the project path** in every command — `"Time Strip.xcodeproj"` contains a space.
 - **The App Store name is `Time Strip: Time Zones`.** "Time Strip" alone is taken in App
   Store Connect. The app, its display name and the slug stay `Time Strip` /
