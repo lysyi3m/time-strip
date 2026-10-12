@@ -51,7 +51,7 @@ open "Time Strip.xcodeproj"  # then press ⌘R
 ```
 
 To install the widget without Xcode, run `make install`: it builds signed, copies the app
-to `/Applications`, and registers the widget.
+to `~/Applications`, and registers the widget.
 
 To try the iOS widget, run `make run-ios` (or `make run-ios SIM="iPad Pro 13"`): it builds for the
 Simulator, installs the app and launches it. No Team is needed.
@@ -81,6 +81,7 @@ fully responsive, filling whatever bounds each widget family provides.
 | `Sources/App/` | Minimal host app (onboarding window) |
 | `Tests/` | Unit tests (`@testable import TimeStripKit` / `TimeStripUI`) |
 | `Config/` | `Base.xcconfig`; `make generate` writes the rest (git-ignored) |
+| `Scripts/` | `make-dev-icon.swift` — renders the Debug app's icon from `AppIcon` |
 
 ## Testing
 
