@@ -5,9 +5,7 @@
 <h1 align="center">Time Strip</h1>
 
 <p align="center">
-  A macOS and iOS widget that lines several time zones up on one grid, so a
-  single marker reads the same instant in every city. Native SwiftUI and
-  WidgetKit, no third-party dependencies.
+  A world clock widget for Mac, iPhone and iPad, with the hours aligned across cities.
 </p>
 
 <p align="center">
@@ -23,85 +21,108 @@
 </p>
 
 <p align="center">
-  <img src="assets/screenshot-light.png" alt="Time Strip widget, light mode" width="49%">
-  <img src="assets/screenshot-dark.png" alt="Time Strip widget, dark mode" width="49%">
+  <img src="assets/screenshot-light.png" alt="Time Strip widget, light appearance" width="49%">
+  <img src="assets/screenshot-dark.png" alt="Time Strip widget, dark appearance" width="49%">
 </p>
+
+Each city has a row of hours, shaded from day to night. A single marker shows the current time
+across every row, so you can compare local times at a glance.
 
 ## Features
 
-- **Two to seven cities**, each a horizontal day/night-shaded ribbon. Pick from about 32,000 cities, or any time zone.
-- **Absolute-time alignment** — every column is one instant, so *now* is a single vertical line across every city.
-- **Medium and Large** sizes — up to four cities on Medium, seven on Large.
-- **Configure on the widget** — right-click (Mac) or touch and hold (iPhone, iPad) ▸ *Edit Widget* to choose cities and drag to reorder.
-- **12- or 24-hour** clock, following your system setting.
-- **Light and dark**, with continuous time-of-day shading and the current hour marked.
+- Choose from about 32,000 cities, or select a time zone.
+- Show up to four cities in a Medium widget or seven in a Large widget.
+- See the date where each city's day changes.
+- Use your system's 12- or 24-hour clock setting.
+- Light, dark and tinted appearances.
+
+## Add the widget
+
+On Mac, right-click the desktop and choose **Edit Widgets**. On iPhone or iPad, touch and hold
+an empty area of the Home Screen, then choose **Edit → Add Widget**. Find Time Strip and add a
+Medium or Large widget.
+
+To choose cities, right-click the widget on Mac, or touch and hold it on iPhone or iPad, then
+choose **Edit Widget**. Select your cities and drag to reorder them.
+
+## Privacy
+
+No accounts, tracking or network access. Time Strip collects no data, and your cities stay on
+your device. See [PRIVACY.md](PRIVACY.md).
 
 ## Requirements
 
-- macOS 26 or later, or iOS 26 or later
-- Xcode 26 or later and XcodeGen, to build
+- macOS 26 or later, or iOS/iPadOS 26 or later.
+- To build: Xcode 27 and XcodeGen. CI uses Xcode 27.0.
 
-## Build & run
+## Build and run
 
 ```bash
-brew install xcodegen        # one-time
-cp .env.example .env         # one-time; set DEVELOPMENT_TEAM to your Apple Team ID
-make generate                # regenerate "Time Strip.xcodeproj" from project.yml
-open "Time Strip.xcodeproj"  # then press ⌘R
+brew install xcodegen
+cp .env.example .env         # Set DEVELOPMENT_TEAM to your Apple Team ID.
+make generate
+open "Time Strip.xcodeproj"  # Select the Mac destination and press ⌘R.
 ```
 
-To install the widget without Xcode, run `make install`: it builds signed, copies the app
-to `~/Applications`, and registers the widget.
+Run the app from Xcode once to provision the Mac widget. After that, `make install` builds and
+installs the development app to `~/Applications` and registers its widget. The development app
+uses a separate bundle ID from the App Store app.
 
-To try the iOS widget, run `make run-ios` (or `make run-ios SIM="iPad Pro 13"`): it builds for the
-Simulator, installs the app and launches it. No Team is needed.
+To try the iOS widget in the Simulator:
 
-Run `make` to list the other tasks (`test`, `build`, `build-ios`, `install`, `uninstall`, `clean`).
+```bash
+make run-ios                         # iPhone 17 by default
+make run-ios SIM="iPad Pro 13"
+```
 
-`Time Strip.xcodeproj` is generated from [`project.yml`](project.yml); it is gitignored and must not
-be hand-edited. `make generate` projects `DEVELOPMENT_TEAM` from `.env` into
-`Config/Local.xcconfig`, so Xcode and `xcodebuild` sign with the same team.
+Simulator builds do not need an Apple Team ID.
+
+Run `make` to list all available tasks. `make build` and `make build-ios` check that the app
+compiles without signing.
+
+[`project.yml`](project.yml) is the source of the generated Xcode project; do not edit the
+`.xcodeproj` directly. `make generate` also reads `DEVELOPMENT_TEAM` from `.env` into the
+ignored `Config/Local.xcconfig`, so Xcode and command-line builds use the same signing team.
 
 ## How it works
 
-Every column across all rows is one shared UTC instant, stepped by a fixed
-3600 s rather than "add one clock hour" — so *now* stays a single straight line
-and DST changes or sub-hour zones (e.g. UTC+5:30) never skew the grid. That grid
-math, the locale-aware 12/24-hour formatting, and the city catalog live in the
-UI-free, unit-tested `TimeStripKit` framework. The OS lists only time zones, so
-a city such as Seattle or Astana comes from a bundled table that maps each city
-to its zone. `make cities` rebuilds the table from the GeoNames dump. The SwiftUI ribbon is
-fully responsive, filling whatever bounds each widget family provides.
+Time Strip uses SwiftUI and WidgetKit, with no third-party runtime dependencies.
+
+Each column represents the same instant across all cities. Columns advance by 3,600 seconds,
+keeping the grid aligned through daylight saving changes and in time zones with half-hour or
+quarter-hour offsets. Shading follows the local clock hour, rather than sunrise and sunset.
+
+The time calculations, clock formatting and city catalog live in `TimeStripKit`, which has no UI
+dependencies. Each city in the bundled catalog maps to a time zone. `make cities` rebuilds the
+catalog from GeoNames data; it requires network access, and the downloaded data can change
+between runs.
 
 ## Project structure
 
 | Path | Purpose |
 | --- | --- |
-| `Sources/Kit/` | `TimeStripKit` — UI-free core: time engine, formatter, city catalog, models |
-| `Sources/Kit/Resources/` | `cities.tsv` — the city table, generated by `make cities` |
-| `Sources/UI/` | `TimeStripUI` — SwiftUI ribbon view, palette, widget background |
-| `Sources/Widget/` | WidgetKit extension: timeline provider + `AppIntent` configuration |
-| `Sources/App/` | Minimal host app (onboarding window) |
-| `Tests/` | Unit tests (`@testable import TimeStripKit` / `TimeStripUI`) |
-| `Config/` | `Base.xcconfig`; `make generate` writes the rest (git-ignored) |
-| `Scripts/` | `make-dev-icon.swift` renders the Debug app's icon; `make-cities.swift` builds the city table |
+| `Sources/Kit/` | Time calculations, formatting, city catalog and models |
+| `Sources/Kit/Resources/` | Generated city table (`cities.tsv`) |
+| `Sources/UI/` | Shared SwiftUI ribbon views, palette and widget background |
+| `Sources/Widget/` | WidgetKit timeline provider and configuration |
+| `Sources/App/` | Host app with widget setup instructions |
+| `Tests/` | Core logic and layout tests |
+| `Config/` | Shared build settings and generated local configuration |
+| `Scripts/` | Development icon and city table generators |
 
 ## Testing
-
-No setup required — the tests build their own fixtures and read the bundled city table and the OS zones:
 
 ```bash
 make test
 ```
 
-## Privacy
-
-Time Strip collects no data and has no network access — see [PRIVACY.md](PRIVACY.md).
+Tests run on macOS without signing, credentials or network access. They use their own fixtures,
+the bundled city table and system time zones.
 
 ## License
 
-The code is MIT — see [LICENSE](LICENSE). The app's name and icon are reserved; see
+The code is licensed under [MIT](LICENSE). The app's name and icon are reserved; see
 [TRADEMARKS.md](TRADEMARKS.md).
 
-The city table is data from [GeoNames](https://www.geonames.org), licensed under
+City data is from [GeoNames](https://www.geonames.org), licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
