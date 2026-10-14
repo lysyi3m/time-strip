@@ -18,7 +18,7 @@ public struct WidgetPromptView: View {
                 Text("Choose your cities")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Palette.railLabel(scheme))
-                Text("Right-click the widget and choose Edit Widget to add at least two cities.")
+                Text("Edit the widget to add at least two cities.")
                     .font(.system(size: 14))
                     .foregroundStyle(Palette.railLabel(scheme).opacity(0.6))
                     .multilineTextAlignment(.center)
