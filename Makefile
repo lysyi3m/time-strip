@@ -23,7 +23,7 @@ STRICT := SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES
 require-team = @grep -qsE '$(TEAM_SETTING)' $(LOCAL_XCCONFIG) || { echo "✗ Set DEVELOPMENT_TEAM in .env (copy .env.example)"; exit 1; }
 
 .DEFAULT_GOAL := help
-.PHONY: help generate local-config test build build-ios run-ios install uninstall clean
+.PHONY: help generate local-config test build build-ios run-ios install uninstall clean cities
 
 help: ## List available targets
 	@grep -E '^[a-z][a-zA-Z-]*:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## / — /' | sort
@@ -95,6 +95,15 @@ install: generate ## Re-deploy the dev app to ~/Applications (needs one prior Xc
 uninstall: ## Quit and remove the dev app from ~/Applications
 	-osascript -e 'quit app id "$(APP_ID)"' 2>/dev/null || true
 	rm -rf "$(INSTALLED)"
+
+# GeoNames publishes the dump daily, so each run can change the table. Review the diff.
+GEONAMES := build/geonames
+cities: ## Rebuild the city table from the GeoNames dump (needs network)
+	mkdir -p $(GEONAMES)
+	curl -fsSL -o $(GEONAMES)/cities15000.zip https://download.geonames.org/export/dump/cities15000.zip
+	curl -fsSL -o $(GEONAMES)/admin1CodesASCII.txt https://download.geonames.org/export/dump/admin1CodesASCII.txt
+	unzip -o -q $(GEONAMES)/cities15000.zip -d $(GEONAMES)
+	Scripts/make-cities.swift $(GEONAMES)/cities15000.txt $(GEONAMES)/admin1CodesASCII.txt Sources/Kit/Resources/cities.tsv
 
 clean: ## Remove build artifacts
 	rm -rf build

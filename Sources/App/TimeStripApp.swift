@@ -36,7 +36,8 @@ struct TimeStripApp: App {
 #if os(macOS)
 
 /// Standard About panel (icon / name / version / copyright) plus a centered credits block with a
-/// clickable link to the project repo.
+/// clickable link to the project repo. The city table is GeoNames data under CC BY 4.0, which
+/// requires the credit in the app.
 @MainActor
 private func showAboutPanel() {
     let credits = NSMutableAttributedString(
@@ -51,6 +52,27 @@ private func showAboutPanel() {
         attributes: [
             .font: NSFont.systemFont(ofSize: 11),
             .link: URL(string: "https://github.com/lysyi3m/time-strip")!,
+        ]
+    ))
+    credits.append(NSAttributedString(
+        string: "\n\nCity data: ",
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+    ))
+    credits.append(NSAttributedString(
+        string: "GeoNames",
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 11),
+            .link: URL(string: "https://www.geonames.org")!,
+        ]
+    ))
+    credits.append(NSAttributedString(
+        string: " (CC BY 4.0)",
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.secondaryLabelColor,
         ]
     ))
     let centered = NSMutableParagraphStyle()

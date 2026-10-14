@@ -1,20 +1,51 @@
 import Foundation
 
-/// A time zone the user can place on a row, labeled by a representative city. Sourced from the
-/// OS zone list (`CityCatalog`), so `tzid` is an IANA identifier and `name` its friendly city
-/// name.
+/// A place the user can put on a row: a city from the bundled table, or a bare OS time zone
+/// labeled by its identifier's city. `tzid` is always an IANA identifier.
 public struct City: Identifiable, Codable, Hashable, Sendable {
     public let name: String
     public let tzid: String        // IANA identifier, e.g. "Europe/Warsaw"
+    public let admin: String       // first-level division, e.g. "Washington"; empty for a zone
+    public let country: String     // ISO 3166 code, e.g. "US"; empty for a zone
 
-    /// Stable identity for pickers/entities — the IANA id is already unique and stable.
-    public var id: String { tzid }
     public var timeZone: TimeZone { TimeZone(identifier: tzid) ?? .gmt }
+    public var isZone: Bool { country.isEmpty }
 
-    public init(name: String, tzid: String) {
+    public init(name: String, tzid: String, admin: String = "", country: String = "") {
         self.name = name
         self.tzid = tzid
+        self.admin = admin
+        self.country = country
     }
+
+    /// Stable identity for pickers and saved widget configurations. A zone keeps its bare IANA
+    /// id, so widgets saved before the city table still resolve. A city carries every field, so
+    /// it resolves without the table even when a later table drops or renames it.
+    public var id: String {
+        isZone ? tzid : [tzid, name, admin, country].joined(separator: String(Self.separator))
+    }
+
+    /// Rebuilds a city from its `id`. A bare id is a zone, labeled from the identifier.
+    public init?(id: String) {
+        let parts = id.split(separator: Self.separator, omittingEmptySubsequences: false).map(String.init)
+        switch parts.count {
+        case 1:
+            self.init(name: Self.zoneName(forTZID: id), tzid: id)
+        case 4 where !parts[0].isEmpty && !parts[1].isEmpty && !parts[3].isEmpty:
+            self.init(name: parts[1], tzid: parts[0], admin: parts[2], country: parts[3])
+        default:
+            return nil
+        }
+        guard TimeZone(identifier: tzid) != nil else { return nil }
+    }
+
+    /// Friendly name from an IANA id: last path segment, underscores → spaces.
+    public static func zoneName(forTZID tzid: String) -> String {
+        guard let last = tzid.split(separator: "/").last else { return tzid }
+        return last.replacingOccurrences(of: "_", with: " ")
+    }
+
+    private static let separator: Character = "|"
 }
 
 public struct Slot: Hashable, Sendable {

@@ -1,30 +1,27 @@
 import AppIntents
 import TimeStripKit
 
-/// A selectable time zone exposed to the native widget editor. Backed by `CityCatalog`; the id
-/// is the IANA identifier, so selections resolve stably across launches. The region is shown as
-/// a subtitle to disambiguate same-named cities.
+/// A selectable city exposed to the native widget editor. The id is `City.id`, which carries
+/// everything needed to rebuild the city, so selections resolve stably across launches and table
+/// updates. The subtitle tells same-named cities apart.
 struct CityEntity: AppEntity {
-    let id: String        // IANA tzid
-    let name: String
-    let region: String
+    let city: City
+    var id: String { city.id }
 
     init(city: City) {
-        self.id = city.id
-        self.name = city.name
-        self.region = CityCatalog.region(forTZID: city.tzid)
+        self.city = city
     }
 
     static var typeDisplayRepresentation: TypeDisplayRepresentation { "City" }
     static let defaultQuery = CityQuery()
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(name)", subtitle: "\(region)")
+        DisplayRepresentation(title: "\(city.name)", subtitle: "\(CityCatalog.subtitle(for: city))")
     }
 }
 
-/// Feeds the native searchable picker: popular suggestions when empty, population-free string
-/// search while typing, and id resolution for saved selections — all from `CityCatalog`.
+/// Feeds the native searchable picker: popular suggestions when empty, string search while
+/// typing, and id resolution for saved selections — all from `CityCatalog`.
 struct CityQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [CityEntity] {
         identifiers.compactMap { CityCatalog.city(forID: $0).map(CityEntity.init) }
@@ -45,7 +42,7 @@ struct CityQuery: EntityStringQuery {
 /// family (fewer on `.systemMedium`, more on `.systemLarge`).
 struct TimeStripConfigurationIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Time Strip"
-    static let description = IntentDescription("Choose the time zones to show as ribbons.")
+    static let description = IntentDescription("Choose the cities to show as ribbons.")
 
     static let maxCities = 7
 
@@ -57,6 +54,6 @@ struct TimeStripConfigurationIntent: WidgetConfigurationIntent {
     var configuredCities: [City] {
         (cities ?? [])
             .prefix(Self.maxCities)
-            .map { City(name: $0.name, tzid: $0.id) }
+            .map(\.city)
     }
 }

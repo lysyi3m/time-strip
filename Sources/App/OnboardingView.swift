@@ -24,14 +24,20 @@ struct OnboardingView: View {
             .fixedSize(horizontal: false, vertical: true)
             .background(canvas)
         #else
-        // iOS has no Help menu, so the privacy policy link App Review requires sits on screen.
+        // iOS has no Help menu or About panel, so the privacy policy link App Review requires and
+        // the GeoNames credit sit on screen.
         // The minimum height centers the content when it fits (iPad) and lets it scroll when not.
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 22) {
                     content
-                    Link("Privacy Policy", destination: privacyPolicyURL)
-                        .font(.system(size: 13))
+                    VStack(spacing: 6) {
+                        Link("Privacy Policy", destination: privacyPolicyURL)
+                            .font(.system(size: 13))
+                        Text("City data: [GeoNames](https://www.geonames.org) (CC BY 4.0)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(20)
                 .frame(maxWidth: 560)

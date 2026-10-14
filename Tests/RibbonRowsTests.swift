@@ -23,10 +23,21 @@ final class RibbonRowsTests: XCTestCase {
         XCTAssertEqual(RibbonRows.resolve(configured: [la, ny], defaults: defaults), .ribbon([la, ny]))
     }
 
-    func testDuplicateZoneCollapsesToOneAndPrompts() {
-        // The same zone chosen twice is one distinct zone → too few to compare.
+    func testDuplicateCityCollapsesToOneAndPrompts() {
+        // The same city chosen twice is one distinct city → too few to compare.
         let dup = City(name: "Los Angeles", tzid: "America/Los_Angeles")
         XCTAssertEqual(RibbonRows.resolve(configured: [la, dup], defaults: defaults), .setupNeeded)
+    }
+
+    func testCitiesSharingAZoneStayDistinctRows() {
+        let seattle = City(name: "Seattle", tzid: "America/Los_Angeles", admin: "Washington", country: "US")
+        XCTAssertEqual(RibbonRows.resolve(configured: [la, seattle], defaults: defaults), .ribbon([la, seattle]))
+    }
+
+    func testZoneAndCityOfTheSameNameCollapse() {
+        // A widget saved before the city table holds the bare zone; the table city reads the same.
+        let tableLA = City(name: "Los Angeles", tzid: "America/Los_Angeles", admin: "California", country: "US")
+        XCTAssertEqual(RibbonRows.resolve(configured: [la, tableLA, ny], defaults: defaults), .ribbon([la, ny]))
     }
 
     func testDeduplicationPreservesOrderAndDropsLaterDuplicates() {
