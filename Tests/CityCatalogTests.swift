@@ -1,52 +1,92 @@
 import XCTest
 @testable import TimeStripKit
 
-/// The OS-sourced zone catalog behind the widget's city picker.
+/// The bundled city table and OS zones behind the widget's city picker.
 final class CityCatalogTests: XCTestCase {
 
-    func testAllZonesAreOSSourcedAndRegionQualified() {
-        let all = CityCatalog.all
-        let known = Set(TimeZone.knownTimeZoneIdentifiers)
-        XCTAssertFalse(all.isEmpty)
-        for city in all {
-            XCTAssertTrue(known.contains(city.tzid), "\(city.tzid) should be an OS identifier")
-            XCTAssertTrue(city.tzid.contains("/"), "bare/region-less ids are dropped: \(city.tzid)")
-            XCTAssertNotNil(TimeZone(identifier: city.tzid), "must resolve: \(city.tzid)")
+    func testEveryCityHasAZoneTheOSResolves() {
+        let cities = CityCatalog.cities
+        XCTAssertGreaterThan(cities.count, 10_000)
+        for city in cities {
+            XCTAssertNotNil(TimeZone(identifier: city.tzid), "\(city.name) has an unknown zone \(city.tzid)")
+            XCTAssertFalse(city.name.isEmpty)
+            XCTAssertEqual(city.country.count, 2, "\(city.name) needs an ISO country code")
         }
-        // Sorted by display name.
-        let names = all.map(\.name)
-        XCTAssertEqual(names, names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending })
     }
 
-    func testDisplayNameDerivation() {
-        XCTAssertEqual(CityCatalog.displayName(forTZID: "America/New_York"), "New York")
-        XCTAssertEqual(CityCatalog.displayName(forTZID: "Europe/Warsaw"), "Warsaw")
-        XCTAssertEqual(CityCatalog.displayName(forTZID: "America/Argentina/Buenos_Aires"), "Buenos Aires")
-        XCTAssertEqual(CityCatalog.region(forTZID: "Asia/Tokyo"), "Asia")
+    func testCitiesWithoutTheirOwnZoneAreFound() throws {
+        // Neither city names an IANA zone: Seattle shares Los Angeles's, Astana shares Almaty's.
+        let seattle = try XCTUnwrap(CityCatalog.search("Seattle").first)
+        XCTAssertEqual(seattle.name, "Seattle")
+        XCTAssertEqual(seattle.country, "US")
+        XCTAssertEqual(seattle.timeZone.identifier, TimeZone(identifier: "America/Los_Angeles")?.identifier)
+
+        let astana = try XCTUnwrap(CityCatalog.search("astana").first)
+        XCTAssertEqual(astana.name, "Astana")
+        XCTAssertEqual(astana.country, "KZ")
     }
 
-    func testLookupByID() {
-        let city = CityCatalog.city(forID: "Europe/Warsaw")
-        XCTAssertEqual(city?.name, "Warsaw")
-        XCTAssertEqual(city?.id, "Europe/Warsaw")
+    func testOSZonesStayPickableWithoutDuplicatingCities() {
+        let zones = CityCatalog.zones
+        let known = Set(TimeZone.knownTimeZoneIdentifiers)
+        XCTAssertFalse(zones.isEmpty)
+        for zone in zones {
+            XCTAssertTrue(zone.isZone)
+            XCTAssertTrue(known.contains(zone.tzid), "\(zone.tzid) should be an OS identifier")
+            XCTAssertTrue(zone.tzid.contains("/"), "bare/region-less ids are dropped: \(zone.tzid)")
+        }
+        // The Los Angeles city covers the America/Los_Angeles zone, so the zone row is dropped.
+        XCTAssertFalse(zones.contains { $0.tzid == "America/Los_Angeles" })
+        XCTAssertEqual(CityCatalog.search("los angeles").filter { $0.name == "Los Angeles" }.count, 1)
+        // A zone no city names stays: the table calls the city Kolkata.
+        XCTAssertTrue(zones.contains { $0.tzid == "Asia/Calcutta" })
+    }
+
+    func testZoneNameDerivation() {
+        XCTAssertEqual(City.zoneName(forTZID: "America/New_York"), "New York")
+        XCTAssertEqual(City.zoneName(forTZID: "America/Argentina/Buenos_Aires"), "Buenos Aires")
+    }
+
+    func testIDRoundTripsAndResolvesWithoutTheTable() {
+        let city = City(name: "Seattle", tzid: "America/Los_Angeles", admin: "Washington", country: "US")
+        XCTAssertEqual(CityCatalog.city(forID: city.id), city)
+
+        // A widget saved before the city table holds a bare IANA id.
+        let zone = CityCatalog.city(forID: "Europe/Warsaw")
+        XCTAssertEqual(zone, City(name: "Warsaw", tzid: "Europe/Warsaw"))
+        XCTAssertEqual(zone?.id, "Europe/Warsaw")
+        XCTAssertEqual(zone?.isZone, true)
+
         XCTAssertNil(CityCatalog.city(forID: "Not/AZone"))
+        XCTAssertNil(CityCatalog.city(forID: "Not/AZone|Nowhere||US"))
+        XCTAssertNil(CityCatalog.city(forID: "Europe/Warsaw|Warsaw"))
     }
 
-    func testSearchIsCaseAndDiacriticInsensitiveAndPrefixRanked() {
-        let results = CityCatalog.search("warsaw")
-        XCTAssertEqual(results.first?.tzid, "Europe/Warsaw")
+    func testSubtitleTellsSameNamedCitiesApart() {
+        let en = Locale(identifier: "en_US")
+        let portland = City(name: "Portland", tzid: "America/Los_Angeles", admin: "Oregon", country: "US")
+        XCTAssertEqual(CityCatalog.subtitle(for: portland, locale: en), "Oregon, United States")
+        let singapore = City(name: "Singapore", tzid: "Asia/Singapore", admin: "", country: "SG")
+        XCTAssertEqual(CityCatalog.subtitle(for: singapore, locale: en), "Singapore")
+        XCTAssertEqual(CityCatalog.subtitle(for: City(name: "Calcutta", tzid: "Asia/Calcutta"), locale: en), "Asia/Calcutta")
+    }
 
-        // Diacritic-insensitive: "Sao Paulo" matches "São Paulo".
-        XCTAssertTrue(
-            CityCatalog.search("sao paulo").contains { $0.tzid == "America/Sao_Paulo" },
-            "diacritic-insensitive search should find São Paulo"
-        )
+    func testSearchIsCaseAndDiacriticInsensitive() {
+        XCTAssertEqual(CityCatalog.search("WARSAW").first?.name, "Warsaw")
+        XCTAssertTrue(CityCatalog.search("sao paulo").contains { $0.name == "São Paulo" })
+        // Folding does not turn Ł into L; the table's ASCII name covers it.
+        XCTAssertTrue(CityCatalog.search("lodz").contains { $0.name == "Łódź" })
+    }
 
-        // Prefix beats substring: querying "york" surfaces New York.
-        XCTAssertTrue(CityCatalog.search("york").contains { $0.tzid == "America/New_York" })
-
+    func testSearchRanksByMatchThenPopulation() {
+        // The largest Paris beats Paris, Texas.
+        XCTAssertEqual(CityCatalog.search("paris").first?.country, "FR")
+        // A word prefix inside the name still finds the city.
+        XCTAssertTrue(CityCatalog.search("york").contains { $0.name == "New York City" })
+        // A country name finds its cities.
+        XCTAssertTrue(CityCatalog.search("Kazakhstan").contains { $0.name == "Astana" })
         // Empty query yields the curated suggestions.
-        XCTAssertEqual(CityCatalog.search("   ").map(\.tzid), CityCatalog.suggested.map(\.tzid))
+        XCTAssertEqual(CityCatalog.search("   "), CityCatalog.suggested)
     }
 
     func testSearchLimitIsClampedNotTrapping() {
@@ -56,7 +96,7 @@ final class CityCatalogTests: XCTestCase {
     }
 
     func testSuggestedAndDefaultsResolve() {
-        XCTAssertFalse(CityCatalog.suggested.isEmpty)
+        XCTAssertEqual(CityCatalog.suggested.count, 25, "every popular city must be in the table")
         XCTAssertEqual(CityCatalog.defaults.map(\.tzid), [
             "America/Los_Angeles", "America/New_York", "Europe/London", "Europe/Warsaw",
             "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo",

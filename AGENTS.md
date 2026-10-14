@@ -70,7 +70,8 @@ contradicts a rule here, the repo-specific rule wins — and say so when you not
 
 ## Terminology
 
-- **City** — one selected time zone, rendered as one row. Identified by its IANA tzid.
+- **City** — one selected place, rendered as one row: a city from the bundled table, or a bare
+  OS time zone. It always carries an IANA tzid. Identified by `City.id`.
 - **Ribbon** — the shaded bar for one city.
 - **Rail** — the fixed-width name column at the left of each row.
 - **Column** — one hour cell. Every column is one absolute instant, shared by all rows.
@@ -131,5 +132,9 @@ Nothing sensitive ships in this repo. The Apple Team ID lives in `.env`, per the
   After that, `make install` is the fast way to push rebuilds.
 - **The widget configuration caps at 7 cities** (`TimeStripConfigurationIntent.maxCities`). How
   many actually render depends on the family: fewer on `.systemMedium`, more on `.systemLarge`.
+- **The city table is generated.** `Sources/Kit/Resources/cities.tsv` comes from the GeoNames
+  dump through `make cities`; never hand-edit it. GeoNames is CC BY 4.0, so the credit stays in
+  the About panel (macOS), the onboarding screen (iOS) and the README. A saved `City.id` must
+  keep resolving: a bare tzid is a zone, and a city id carries every field it needs.
 - Tests build their own fixtures and read zones from the OS. Never hardcode an offset or a
   magic number that `TimeZone` or `Calendar` could drift away from.
